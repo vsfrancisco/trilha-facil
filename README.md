@@ -2,46 +2,17 @@
 
 Plataforma web para diagnóstico inicial de carreira, recomendação de trilhas profissionais e visualização administrativa dos assessments realizados.
 
-O projeto foi construído como um MVP full stack com frontend em Next.js e backend em FastAPI, persistindo dados em PostgreSQL no Neon.
+**MVP completo com backend protegido e dashboard administrativo.**
+
+O projeto foi construído como full stack com frontend em Next.js e backend em FastAPI, persistindo dados em PostgreSQL no Neon.
+
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-blue)](https://fastapi.tiangolo.com)
+[![Frontend](https://img.shields.io/badge/Frontend-Next.js-orange)](https://nextjs.org)
+[![Database](https://img.shields.io/badge/DB-PostgreSQL-brightgreen)](https://www.postgresql.org)
 
 ---
 
-## Visão geral
-
-O TrilhaFácil recebe respostas de um assessment simples e retorna:
-- trilha recomendada;
-- score de aderência;
-- justificativa;
-- plano inicial de 30 dias;
-- exemplos de vagas relacionadas.
-
-Além da experiência principal do usuário, o projeto também possui um dashboard administrativo com autenticação simples, gráfico por trilha, visualização detalhada e exclusão de registros.
-
----
-
-## Stack utilizada
-
-### Frontend
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Recharts
-
-### Backend
-- FastAPI
-- SQLModel
-- Uvicorn
-- PostgreSQL
-- Psycopg
-- Python Dotenv
-
-### Banco de dados
-- Neon.tech (PostgreSQL)
-
----
-
-## Funcionalidades já implementadas
+## Funcionalidades implementadas ✅
 
 ### Usuário final
 - Formulário de assessment de carreira
@@ -53,302 +24,206 @@ Além da experiência principal do usuário, o projeto também possui um dashboa
   - plano de 30 dias
   - cargos exemplo
 
-### Backend / API
-- Integração com PostgreSQL no Neon
-- Persistência dos assessments no banco
-- Endpoint para criar assessment
-- Endpoint para listar assessments
-- Endpoint para buscar assessment por ID
-- Endpoint para excluir assessment
+### Backend / API **PROTEGIDA**
+- ✅ Integração com PostgreSQL no Neon
+- ✅ **Autenticação por header `X-Admin-Token`**
+- ✅ Endpoint público: `POST /api/assessment`
+- ✅ Endpoints protegidos:
+  - `GET /api/assessments` - listar
+  - `GET /api/assessments/{id}` - detalhe
+  - `DELETE /api/assessments/{id}` - excluir
 
 ### Dashboard administrativo
-- Listagem dos assessments
-- Filtro por trilha
-- KPIs do dashboard
-- Resumo por trilha
-- Gráfico de barras com Recharts
-- Página de detalhe por assessment
-- Exclusão de assessment pelo detalhe
+- ✅ Listagem dos assessments
+- ✅ Filtro por trilha
+- ✅ KPIs do dashboard
+- ✅ Gráfico de barras com Recharts
+- ✅ Página de detalhe por assessment
+- ✅ Exclusão de assessment
+- ✅ Autenticação por cookie com expiração
 
-### Autenticação
-- Login simples para acesso ao dashboard
-- Proteção de rota com `proxy.ts`
-- Cookie HTTP-only para sessão
-- Sessão com expiração por tempo
-- Redirecionamento para login quando a sessão expira
-- Logout
-- Feedback visual com toast
+---
+
+## Stack utilizada
+
+| Frontend | Backend | Database |
+|----------|---------|----------|
+| Next.js 14 | FastAPI | PostgreSQL |
+| React 18 | SQLModel | Neon.tech |
+| Tailwind CSS | Uvicorn | |
+| Recharts | Pydantic | |
+| TypeScript | Python 3.12 | |
 
 ---
 
 ## Estrutura do projeto
-
-```bash
 trilha-facil/
 ├── backend/
-│   ├── .env
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── requirements.txt
-│   └── venv/
+│ ├── .env # DATABASE_URL + ADMIN_API_TOKEN
+│ ├── auth.py # ✅ Proteção X-Admin-Token
+│ ├── database.py
+│ ├── main.py # ✅ Endpoints protegidos
+│ ├── models.py
+│ ├── schemas.py
+│ ├── requirements.txt
+│ └── venv/
 │
 ├── frontend/
-│   ├── .env.local
-│   ├── proxy.ts
-│   ├── package.json
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── api/
-│   │   │   │   ├── login/
-│   │   │   │   │   └── route.ts
-│   │   │   │   └── logout/
-│   │   │   │       └── route.ts
-│   │   │   ├── dashboard/
-│   │   │   │   ├── [id]/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── login/
-│   │   │   │   └── page.tsx
-│   │   │   └── page.tsx
-│   │   └── components/
-│   │       ├── Toast.tsx
-│   │       └── TrackBarChart.tsx
-│
-├── .gitignore
-└── README.md
-```
-
----
-
-## Endpoints principais da API
-
-### Health check
-```http
-GET /
-```
-
-### Criar assessment
-```http
-POST /api/assessment
-```
-
-### Listar assessments
-```http
-GET /api/assessments
-```
-
-Parâmetros suportados:
-- `limit`
-- `offset`
-
-Exemplo:
-```http
-GET /api/assessments?limit=10&offset=0
-```
-
-### Buscar assessment por ID
-```http
-GET /api/assessments/{assessment_id}
-```
-
-### Excluir assessment
-```http
-DELETE /api/assessments/{assessment_id}
-```
-
----
-
-## Modelo de dados
-
-Cada assessment salvo contém:
-- idade
-- escolaridade
-- área atual
-- pretensão salarial
-- interesses
-- trilha recomendada
-- score de match
-- justificativa
-- plano de 30 dias
-- cargos exemplo
-- data de criação
+│ ├── .env.local # NEXT_PUBLIC_ADMIN_API_TOKEN
+│ ├── proxy.ts # Proteção dashboard
+│ ├── package.json
+│ └── src/
+│ ├── app/
+│ │ ├── api/
+│ │ │ ├── login/
+│ │ │ └── logout/
+│ │ ├── dashboard/
+│ │ │ └── [id]/
+│ │ └── page.tsx
+│ └── components/
+│ ├── Toast.tsx
+│ └── TrackBarChart.tsx
 
 ---
 
 ## Como rodar localmente
 
-## 1. Clonar o projeto
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd trilha-facil
-```
-
----
-
-## 2. Backend
-
-Entre na pasta:
+### 1. Backend
 
 ```bash
 cd backend
-```
-
-Crie e ative o ambiente virtual.
-
-### Windows
-```bash
 python -m venv venv
+# Windows
 .\venv\Scripts\activate
-```
+# Linux/Mac
+source venv/bin/activate
 
-Instale as dependências:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Crie o arquivo `.env` dentro de `backend/`.
-
-Exemplo:
-
+**Crie `backend/.env`:**
 ```env
 DATABASE_URL=postgresql://SEU_USER:SUA_SENHA@SEU_HOST/SEU_DB?sslmode=require
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=123456
+ADMIN_API_TOKEN=seu-token-admin-super-seguro
 ```
-
-Suba a API:
 
 ```bash
 python -m uvicorn main:app --reload
 ```
 
-A API deverá abrir em:
+**API em**: `http://localhost:8000` | **Swagger**: `http://localhost:8000/docs`
 
-```txt
-http://localhost:8000
-```
-
-Swagger:
-
-```txt
-http://localhost:8000/docs
-```
-
----
-
-## 3. Frontend
-
-Em outro terminal, entre na pasta:
+### 2. Frontend
 
 ```bash
 cd frontend
-```
-
-Instale as dependências:
-
-```bash
 npm install
 ```
 
-Se ainda não instalou o gráfico:
-
-```bash
-npm install recharts
-```
-
-Crie o arquivo `.env.local`:
-
+**Crie `frontend/.env.local`:**
 ```env
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=123456
+NEXT_PUBLIC_ADMIN_API_TOKEN=seu-token-admin-super-seguro
 ```
-
-Suba o frontend:
 
 ```bash
 npm run dev
 ```
 
-A aplicação deverá abrir em:
+**App em**: `http://localhost:3000`
 
-```txt
-http://localhost:3000
+---
+
+## Endpoints da API
+
+### Público (usuário final)
+POST /api/assessment
+
+### Protegidos (header `X-Admin-Token`)
+GET /api/assessments # Listar (limit/offset)
+GET /api/assessments/{id} # Detalhe
+DELETE /api/assessments/{id} # Excluir
+
+**Exemplo com curl**:
+```bash
+curl -X GET "http://localhost:8000/api/assessments" \
+  -H "X-Admin-Token: seu-token-admin-super-seguro"
 ```
 
 ---
 
-## Fluxo de autenticação
+## Autenticação
 
-O dashboard é protegido por cookie e `proxy.ts`.
+### Dashboard (cookie)
+- Login simples via `/api/login`
+- Proteção via `proxy.ts`
+- Cookie HTTP-only com expiração
+- Logout em `/api/logout`
 
-### Funcionamento
-- usuário sem sessão tenta acessar `/dashboard`;
-- o `proxy.ts` redireciona para `/login`;
-- ao fazer login, a aplicação grava o cookie `admin_auth`;
-- com sessão válida, o acesso ao dashboard é liberado;
-- ao expirar a sessão, o usuário é redirecionado novamente para o login;
-- ao clicar em sair, o cookie é removido.
-
----
-
-## Dashboard administrativo
-
-O dashboard possui:
-- cards com indicadores principais;
-- gráfico de distribuição por trilha;
-- filtro por trilha;
-- resumo agregado;
-- tabela com os assessments;
-- acesso ao detalhe por clique;
-- exclusão de registro.
+### Backend (header)
+- Header `X-Admin-Token`
+- Validado por dependência `verify_admin_token`
+- Token em variável de ambiente
 
 ---
 
-## Observações importantes
+## Fluxo completo
+Usuário gera assessment → POST /api/assessment (público)
 
-- No ambiente local, foi padronizado o uso de:
-  - frontend: `http://localhost:3000`
-  - backend: `http://localhost:8000`
-- O backend usa CORS configurado para permitir o frontend local.
-- O cookie de autenticação usa:
-  - `httpOnly`
-  - `sameSite=lax`
-  - `secure` condicionado ao ambiente de produção
-- O login atual é simples, com credenciais fixas em variável de ambiente. É suficiente para o painel administrativo do MVP, mas não é o modelo final de autenticação para produção.
+Admin faz login → dashboard protegido por cookie
 
----
+Dashboard lista → GET /api/assessments (com X-Admin-Token)
 
-## Próximos passos sugeridos
+Admin clica detalhe → GET /api/assessments/{id} (token)
 
-- Proteger também os endpoints sensíveis do backend
-- Trocar autenticação simples por usuário real no banco
-- Hash de senha
-- Modal visual no lugar de `window.confirm`
-- Toast global reutilizável
-- Filtro por período no dashboard
-- Exportação CSV
-- Deploy integrado frontend + backend
-- Melhorias visuais e responsividade do painel
+Admin exclui → DELETE /api/assessments/{id} (token)
 
 ---
 
-## Status do projeto
+## Deploy
 
-MVP em evolução com:
-- assessment funcional;
-- API persistindo no PostgreSQL;
-- dashboard administrativo;
-- gráfico;
-- detalhamento;
-- exclusão;
-- autenticação simples com expiração de sessão.
+### Backend (Render)
+DATABASE_URL → Render PostgreSQL
+ADMIN_API_TOKEN → Render Environment
+
+
+### Frontend (Render/Next.js)
+NEXT_PUBLIC_ADMIN_API_TOKEN → Environment
+Proxy backend → Render URL
+
+text
+
+---
+
+## Status do projeto ✅
+✅ Backend FastAPI + PostgreSQL (Neon)
+✅ Frontend Next.js + Tailwind + Recharts
+✅ Autenticação dashboard (cookie + proxy)
+✅ Backend protegido (header X-Admin-Token)
+✅ Dashboard com KPIs + gráfico + CRUD
+✅ MVP funcional completo
+
+text
+
+---
+
+## Próximos passos
+
+- [ ] Modal para confirmação de exclusão
+- [ ] Toast global reutilizável
+- [ ] Filtro por período no dashboard
+- [ ] Exportação CSV/PDF
+- [ ] Deploy integrado no Render
+- [ ] Responsividade mobile completa
 
 ---
 
 ## Autor
 
-Projeto desenvolvido por Victor Francisco.
+**Victor Francisco** - Desenvolvedor Full Stack  
+[LinkedIn](https://linkedin.com/in/victorfrancisco) | [GitHub](https://github.com/seuusuario)
+
+---
+
+*Projeto desenvolvido durante fase de MVP com assistência de IA.*
