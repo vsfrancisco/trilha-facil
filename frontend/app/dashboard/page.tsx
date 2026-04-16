@@ -52,8 +52,10 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar dados do dashboard. Verifique backend e token admin.");
-      setToastMessage("Não foi possível carregar os assessments.");
-      setToastType("error");
+      (window as any).addToast({
+        message: "Não foi possivel carregar os assessments.",
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
@@ -71,8 +73,10 @@ export default function DashboardPage() {
         throw new Error("Falha ao realizar logout");
       }
 
-      setToastMessage("Logout realizado com sucesso.");
-      setToastType("success");
+      (window as any).addToast({
+        message: "Logout realizado com sucesso!",
+        type: "success"
+      });
 
       setTimeout(() => {
         router.push("/login");
@@ -80,8 +84,10 @@ export default function DashboardPage() {
       }, 600);
     } catch (err) {
       console.error(err);
-      setToastMessage("Erro ao realizar logout.");
-      setToastType("error");
+      (window as any).addToast({
+        message: "Erro ao realizar logout.",
+        type: "error"
+      });
     } finally {
       setLoggingOut(false);
     }

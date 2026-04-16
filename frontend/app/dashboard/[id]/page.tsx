@@ -89,16 +89,20 @@ async function confirmDelete() {
       throw new Error("Falha ao excluir assessment");
     }
 
-    setToastMessage("Assessment excluído com sucesso.");
-    setToastType("success");
+    (window as any).addToast({
+      message: "Assessment excluído com sucesso!",
+      type: "success"
+    });
 
     setTimeout(() => {
       router.push("/dashboard");
     }, 700);
   } catch (err) {
     console.error(err);
-    setToastMessage("Erro ao excluir assessment.");
-    setToastType("error");
+    (window as any).addToast({
+      message: "Erro ao excluir assessment.",
+      type: "error"
+    });
   } finally {
     setDeleting(false);
   }
