@@ -1,64 +1,354 @@
-# TrilhaFácil 🚀
+# TrilhaFácil
 
-Um MVP focado em clareza de carreira. Ajuda profissionais em transição ou iniciantes a descobrirem uma trilha viável no mercado digital, entenderem suas lacunas de habilidades e executarem um plano prático de 30 dias.
+Plataforma web para diagnóstico inicial de carreira, recomendação de trilhas profissionais e visualização administrativa dos assessments realizados.
 
-## 🎯 O Problema
-Pessoas querendo migrar para a economia digital (tecnologia, dados, planejamento, marketing) sofrem com excesso de informação. Elas não sabem qual área escolher, o que estudar primeiro e quais vagas fazem sentido para o momento atual.
+O projeto foi construído como um MVP full stack com frontend em Next.js e backend em FastAPI, persistindo dados em PostgreSQL no Neon.
 
-## 💡 A Solução (Core Loop Atual)
-1. **Diagnóstico:** O usuário preenche um formulário rápido com sua idade, escolaridade, área atual, pretensão salarial e interesses.
-2. **Motor de Decisão (Backend):** A API analisa as palavras-chave dos interesses e o background do usuário para calcular um *Match Score* entre 5 trilhas mapeadas (Dados, CS, Marketing, Produto e Vendas Tech).
-3. **Plano Tático (Frontend):** O usuário recebe a trilha recomendada com uma justificativa personalizada, um roadmap dividido em 4 semanas (Plano de 30 dias) e exemplos de vagas para buscar no LinkedIn.
+---
 
-## 🛠 Stack Tecnológica
-- **Frontend:** Next.js (React), Tailwind CSS, TypeScript.
-- **Backend:** Python 3, FastAPI, Pydantic.
-- **Banco de Dados (Próxima Fase):** PostgreSQL via SQLModel.
-- **Deploy (Planejado):** Vercel (Front) + Render (Back/DB).
+## Visão geral
 
-## 📅 Roadmap de Desenvolvimento (Sprints)
+O TrilhaFácil recebe respostas de um assessment simples e retorna:
+- trilha recomendada;
+- score de aderência;
+- justificativa;
+- plano inicial de 30 dias;
+- exemplos de vagas relacionadas.
 
-### ✅ Sprint 1 & 2: Validação, Diagnóstico e Motor de Recomendação
-- [x] Setup do monorepo (FastAPI + Next.js).
-- [x] Modelagem de Dados de Entrada (`AssessmentIn` via Pydantic).
-- [x] API: Endpoint `POST /api/assessment` recebendo dados do frontend.
-- [x] API: Lógica real de pontuação (*Match Score*) baseada em interesses e área atual.
-- [x] API: Dicionário interno de profissões expandido com Planos de 30 Dias e Vagas Exemplo.
-- [x] Frontend: Landing page com formulário de diagnóstico.
-- [x] Frontend: Tratamento de erros, loading states e liberação de CORS.
-- [x] Frontend: Interface de Resultados componentizada (Justificativa, Badges de Vagas, Lista de Tarefas).
+Além da experiência principal do usuário, o projeto também possui um dashboard administrativo com autenticação simples, gráfico por trilha, visualização detalhada e exclusão de registros.
 
-### 🚧 Sprint 3: Infraestrutura e Persistência (Próximo Passo)
-- [ ] Configuração do banco de dados relacional (PostgreSQL).
-- [ ] Implementação do SQLModel no FastAPI (Tabelas `User` e `Assessment`).
-- [ ] Salvar os resultados gerados no banco para análise de métricas de uso.
-- [ ] Deploy do Backend no Render e do Frontend na Vercel.
+---
 
-### 🔮 Sprint 4: Retenção e Auth
-- [ ] Integração de Autenticação (Clerk ou JWT próprio).
-- [ ] Dashboard do usuário (Acompanhamento do progresso das 4 semanas).
-- [ ] Curadoria dinâmica de cursos gratuitos por trilha.
+## Stack utilizada
 
-## 🚀 Como rodar o projeto localmente
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Recharts
 
-O projeto está dividido em duas partes: o backend (FastAPI) e o frontend (Next.js). É necessário rodar ambos simultaneamente.
+### Backend
+- FastAPI
+- SQLModel
+- Uvicorn
+- PostgreSQL
+- Psycopg
+- Python Dotenv
 
-### 1. Rodando o Backend
-Abra um terminal na raiz do projeto e execute:
+### Banco de dados
+- Neon.tech (PostgreSQL)
+
+---
+
+## Funcionalidades já implementadas
+
+### Usuário final
+- Formulário de assessment de carreira
+- Processamento da recomendação no backend
+- Retorno com:
+  - trilha recomendada
+  - score de match
+  - justificativa
+  - plano de 30 dias
+  - cargos exemplo
+
+### Backend / API
+- Integração com PostgreSQL no Neon
+- Persistência dos assessments no banco
+- Endpoint para criar assessment
+- Endpoint para listar assessments
+- Endpoint para buscar assessment por ID
+- Endpoint para excluir assessment
+
+### Dashboard administrativo
+- Listagem dos assessments
+- Filtro por trilha
+- KPIs do dashboard
+- Resumo por trilha
+- Gráfico de barras com Recharts
+- Página de detalhe por assessment
+- Exclusão de assessment pelo detalhe
+
+### Autenticação
+- Login simples para acesso ao dashboard
+- Proteção de rota com `proxy.ts`
+- Cookie HTTP-only para sessão
+- Sessão com expiração por tempo
+- Redirecionamento para login quando a sessão expira
+- Logout
+- Feedback visual com toast
+
+---
+
+## Estrutura do projeto
+
+```bash
+trilha-facil/
+├── backend/
+│   ├── .env
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── requirements.txt
+│   └── venv/
+│
+├── frontend/
+│   ├── .env.local
+│   ├── proxy.ts
+│   ├── package.json
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/
+│   │   │   │   ├── login/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── logout/
+│   │   │   │       └── route.ts
+│   │   │   ├── dashboard/
+│   │   │   │   ├── [id]/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   └── components/
+│   │       ├── Toast.tsx
+│   │       └── TrackBarChart.tsx
+│
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Endpoints principais da API
+
+### Health check
+```http
+GET /
+```
+
+### Criar assessment
+```http
+POST /api/assessment
+```
+
+### Listar assessments
+```http
+GET /api/assessments
+```
+
+Parâmetros suportados:
+- `limit`
+- `offset`
+
+Exemplo:
+```http
+GET /api/assessments?limit=10&offset=0
+```
+
+### Buscar assessment por ID
+```http
+GET /api/assessments/{assessment_id}
+```
+
+### Excluir assessment
+```http
+DELETE /api/assessments/{assessment_id}
+```
+
+---
+
+## Modelo de dados
+
+Cada assessment salvo contém:
+- idade
+- escolaridade
+- área atual
+- pretensão salarial
+- interesses
+- trilha recomendada
+- score de match
+- justificativa
+- plano de 30 dias
+- cargos exemplo
+- data de criação
+
+---
+
+## Como rodar localmente
+
+## 1. Clonar o projeto
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd trilha-facil
+```
+
+---
+
+## 2. Backend
+
+Entre na pasta:
+
 ```bash
 cd backend
-# Ative o ambiente virtual (Windows)
-.\venv\Scripts\activate
-# Inicie o servidor
-uvicorn main:app --reload
 ```
-A API estará disponível em `http://127.0.0.1:8000`. Você pode ver a documentação interativa (Swagger) acessando `http://127.0.0.1:8000/docs`.
 
-### 2. Rodando o Frontend
-Abra um **novo terminal** na raiz do projeto e execute:
+Crie e ative o ambiente virtual.
+
+### Windows
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+Instale as dependências:
+
+```bash
+pip install -r requirements.txt
+```
+
+Crie o arquivo `.env` dentro de `backend/`.
+
+Exemplo:
+
+```env
+DATABASE_URL=postgresql://SEU_USER:SUA_SENHA@SEU_HOST/SEU_DB?sslmode=require
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=123456
+```
+
+Suba a API:
+
+```bash
+python -m uvicorn main:app --reload
+```
+
+A API deverá abrir em:
+
+```txt
+http://localhost:8000
+```
+
+Swagger:
+
+```txt
+http://localhost:8000/docs
+```
+
+---
+
+## 3. Frontend
+
+Em outro terminal, entre na pasta:
+
 ```bash
 cd frontend
-# Inicie o servidor de desenvolvimento
+```
+
+Instale as dependências:
+
+```bash
+npm install
+```
+
+Se ainda não instalou o gráfico:
+
+```bash
+npm install recharts
+```
+
+Crie o arquivo `.env.local`:
+
+```env
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=123456
+```
+
+Suba o frontend:
+
+```bash
 npm run dev
 ```
-Acesse a aplicação no navegador em `http://localhost:3000`.
+
+A aplicação deverá abrir em:
+
+```txt
+http://localhost:3000
+```
+
+---
+
+## Fluxo de autenticação
+
+O dashboard é protegido por cookie e `proxy.ts`.
+
+### Funcionamento
+- usuário sem sessão tenta acessar `/dashboard`;
+- o `proxy.ts` redireciona para `/login`;
+- ao fazer login, a aplicação grava o cookie `admin_auth`;
+- com sessão válida, o acesso ao dashboard é liberado;
+- ao expirar a sessão, o usuário é redirecionado novamente para o login;
+- ao clicar em sair, o cookie é removido.
+
+---
+
+## Dashboard administrativo
+
+O dashboard possui:
+- cards com indicadores principais;
+- gráfico de distribuição por trilha;
+- filtro por trilha;
+- resumo agregado;
+- tabela com os assessments;
+- acesso ao detalhe por clique;
+- exclusão de registro.
+
+---
+
+## Observações importantes
+
+- No ambiente local, foi padronizado o uso de:
+  - frontend: `http://localhost:3000`
+  - backend: `http://localhost:8000`
+- O backend usa CORS configurado para permitir o frontend local.
+- O cookie de autenticação usa:
+  - `httpOnly`
+  - `sameSite=lax`
+  - `secure` condicionado ao ambiente de produção
+- O login atual é simples, com credenciais fixas em variável de ambiente. É suficiente para o painel administrativo do MVP, mas não é o modelo final de autenticação para produção.
+
+---
+
+## Próximos passos sugeridos
+
+- Proteger também os endpoints sensíveis do backend
+- Trocar autenticação simples por usuário real no banco
+- Hash de senha
+- Modal visual no lugar de `window.confirm`
+- Toast global reutilizável
+- Filtro por período no dashboard
+- Exportação CSV
+- Deploy integrado frontend + backend
+- Melhorias visuais e responsividade do painel
+
+---
+
+## Status do projeto
+
+MVP em evolução com:
+- assessment funcional;
+- API persistindo no PostgreSQL;
+- dashboard administrativo;
+- gráfico;
+- detalhamento;
+- exclusão;
+- autenticação simples com expiração de sessão.
+
+---
+
+## Autor
+
+Projeto desenvolvido por Victor Francisco.
