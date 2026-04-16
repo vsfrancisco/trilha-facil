@@ -221,9 +221,8 @@ text
 
 ## Autor
 
-**Victor Francisco** - Desenvolvedor Full Stack  
-[LinkedIn](https://linkedin.com/in/victorfrancisco) | [GitHub](https://github.com/seuusuario)
+**Victor Francisco** 
 
 ---
 
-*Projeto desenvolvido durante fase de MVP com assistência de IA.*
+*Projeto desenvolvido durante fase de MVP.*
