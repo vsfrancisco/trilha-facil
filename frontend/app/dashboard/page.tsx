@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import TrackBarChart from "@/components/TrackBarChart";
 
 interface Assessment {
   id: number;
@@ -159,6 +160,17 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="mb-4">
+        <h2 className="text-lg font-bold text-gray-900">Distribuição por trilha</h2>
+        <p className="text-sm text-gray-500">
+        Quantidade de assessments agrupados por trilha recomendada.
+        </p>
+    </div>
+
+    <TrackBarChart data={trackSummary} />
+    </div>
 
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
