@@ -21,15 +21,15 @@ type Assessment = {
 
 function DetailSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-24 rounded-xl bg-white border border-gray-200" />
+    <div className="animate-pulse space-y-4 sm:space-y-6">
+      <div className="h-24 rounded-xl border border-gray-200 bg-white" />
       <div className="grid gap-4 md:grid-cols-3">
         {[1, 2, 3].map((item: number) => (
-          <div key={item} className="h-28 rounded-xl bg-white border border-gray-200" />
+          <div key={item} className="h-28 rounded-xl border border-gray-200 bg-white" />
         ))}
       </div>
-      <div className="h-40 rounded-xl bg-white border border-gray-200" />
-      <div className="h-40 rounded-xl bg-white border border-gray-200" />
+      <div className="h-40 rounded-xl border border-gray-200 bg-white" />
+      <div className="h-40 rounded-xl border border-gray-200 bg-white" />
     </div>
   );
 }
@@ -137,7 +137,7 @@ export default function AssessmentDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6 py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6 sm:py-10">
         <div className="mx-auto max-w-4xl">
           <DetailSkeleton />
         </div>
@@ -147,9 +147,11 @@ export default function AssessmentDetailPage() {
 
   if (error || !assessment) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
-        <div className="mx-auto max-w-4xl rounded-xl border border-red-200 bg-red-50 p-8 shadow-sm">
-          <p className="text-red-700">{error || "Assessment não encontrado."}</p>
+      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6">
+        <div className="mx-auto max-w-4xl rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm sm:p-8">
+          <p className="text-sm text-red-700 sm:text-base">
+            {error || "Assessment não encontrado."}
+          </p>
           <a
             href="/dashboard"
             className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline"
@@ -162,21 +164,23 @@ export default function AssessmentDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 py-10">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6 sm:py-10">
+      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-gray-500">Assessment #{assessment.id}</p>
-            <h1 className="text-3xl font-bold text-gray-900">{assessment.recommended_track}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              {assessment.recommended_track}
+            </h1>
             <p className="mt-1 text-sm text-gray-500">
               Criado em {new Date(assessment.created_at).toLocaleString("pt-BR")}
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               onClick={() => router.push("/dashboard")}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Voltar
             </button>
@@ -184,34 +188,38 @@ export default function AssessmentDetailPage() {
             <button
               onClick={() => setShowDeleteModal(true)}
               disabled={deleting}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {deleting ? "Excluindo..." : "Excluir"}
             </button>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-gray-500">Match Score</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">{assessment.match_score}%</p>
+            <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {assessment.match_score}%
+            </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-gray-500">Pretensão Salarial</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
+            <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
               R$ {assessment.target_salary.toLocaleString("pt-BR")}
             </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 sm:col-span-2 xl:col-span-1">
             <p className="text-sm text-gray-500">Escolaridade</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{assessment.education}</p>
+            <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+              {assessment.education}
+            </p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">Perfil informado</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+          <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">Perfil informado</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -226,35 +234,46 @@ export default function AssessmentDetailPage() {
 
             <div className="md:col-span-2">
               <p className="text-sm text-gray-500">Interesses</p>
-              <p className="font-medium text-gray-900">{assessment.interests}</p>
+              <p className="font-medium text-gray-900 break-words">
+                {assessment.interests}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">Justificativa</h2>
-          <p className="leading-relaxed text-gray-700">{assessment.reason}</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+          <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">Justificativa</h2>
+          <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
+            {assessment.reason}
+          </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">Plano de 30 dias</h2>
+        <div className="grid gap-4 xl:grid-cols-2 xl:gap-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">
+              Plano de 30 dias
+            </h2>
             <ul className="space-y-3">
               {planItems.map((item: string, index: number) => (
-                <li key={index} className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                <li
+                  key={index}
+                  className="rounded-lg bg-gray-50 p-3 text-sm leading-relaxed text-gray-700"
+                >
                   {item}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">Vagas exemplo</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">
+              Vagas exemplo
+            </h2>
             <div className="flex flex-wrap gap-2">
               {roleItems.map((role: string, index: number) => (
                 <span
                   key={index}
-                  className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
+                  className="rounded-full bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-800"
                 >
                   {role}
                 </span>
