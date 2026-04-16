@@ -15,7 +15,12 @@ if not DATABASE_URL:
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True
+    pool_pre_ping=True,      # Testa conexão antes de usar
+    pool_recycle=300,        # Recicla conexões a cada 5min
+    pool_timeout=20,
+    pool_size=5,
+    max_overflow=10,
+    echo=False
 )
 
 def create_db_and_tables():

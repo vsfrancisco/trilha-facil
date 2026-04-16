@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 
-interface Assessment {
+type Assessment = {
   id: number;
   age: string;
   education: string;
@@ -18,6 +17,21 @@ interface Assessment {
   plan_30_days: string;
   example_roles: string;
   created_at: string;
+};
+
+function DetailSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-24 rounded-xl bg-white border border-gray-200" />
+      <div className="grid gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((item: number) => (
+          <div key={item} className="h-28 rounded-xl bg-white border border-gray-200" />
+        ))}
+      </div>
+      <div className="h-40 rounded-xl bg-white border border-gray-200" />
+      <div className="h-40 rounded-xl bg-white border border-gray-200" />
+    </div>
+  );
 }
 
 export default function AssessmentDetailPage() {
@@ -30,8 +44,7 @@ export default function AssessmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     async function fetchAssessment() {
@@ -46,14 +59,17 @@ export default function AssessmentDetailPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Falha ao buscar assessment");
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.detail || "Falha ao buscar assessment");
         }
 
-        const data = await response.json();
+        const data: Assessment = await response.json();
         setAssessment(data);
       } catch (err) {
         console.error(err);
-        setError("Erro ao carregar o assessment.");
+        const message =
+          err instanceof Error ? err.message : "Erro ao carregar o assessment.";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -62,57 +78,68 @@ export default function AssessmentDetailPage() {
     if (id) {
       fetchAssessment();
     }
-  }, [id]);
+  }, [id, adminToken]);
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const roleItems = useMemo(() => {
+    if (!assessment?.example_roles) return [];
+    return assessment.example_roles
+      .split(",")
+      .map((role: string) => role.trim())
+      .filter(Boolean);
+  }, [assessment]);
 
-async function handleDelete() {
-  setShowDeleteModal(true);
-}
+  const planItems = useMemo(() => {
+    if (!assessment?.plan_30_days) return [];
+    return assessment.plan_30_days
+      .split(" | ")
+      .map((item: string) => item.trim())
+      .filter(Boolean);
+  }, [assessment]);
 
-async function confirmDelete() {
-  const confirmed = true; // Modal já confirmou
-  if (!confirmed) return;
+  async function confirmDelete() {
+    try {
+      setDeleting(true);
 
-  try {
-    setDeleting(true);
-    setShowDeleteModal(false);
+      const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
+        method: "DELETE",
+        headers: {
+          "X-Admin-Token": adminToken || "",
+        },
+      });
 
-    const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
-      method: "DELETE",
-      headers: {
-        "X-Admin-Token": adminToken || "",
-      },
-    });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || "Falha ao excluir assessment");
+      }
 
-    if (!response.ok) {
-      throw new Error("Falha ao excluir assessment");
-    }
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message: "Assessment excluído com sucesso.",
+          type: "success",
+        });
+      }
 
-    (window as any).addToast({
-      message: "Assessment excluído com sucesso!",
-      type: "success"
-    });
-
-    setTimeout(() => {
       router.push("/dashboard");
-    }, 700);
-  } catch (err) {
-    console.error(err);
-    (window as any).addToast({
-      message: "Erro ao excluir assessment.",
-      type: "error"
-    });
-  } finally {
-    setDeleting(false);
+    } catch (err) {
+      console.error(err);
+
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message: "Erro ao excluir assessment.",
+          type: "error",
+        });
+      }
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
   }
-}
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-6">
-        <div className="mx-auto max-w-4xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-          <p className="text-gray-600">Carregando assessment...</p>
+      <main className="min-h-screen bg-gray-50 p-6 py-10">
+        <div className="mx-auto max-w-4xl">
+          <DetailSkeleton />
         </div>
       </main>
     );
@@ -134,19 +161,8 @@ async function confirmDelete() {
     );
   }
 
-  const planItems = assessment.plan_30_days.split(" | ");
-  const roleItems = assessment.example_roles.split(",");
-
   return (
     <main className="min-h-screen bg-gray-50 p-6 py-10">
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage("")}
-        />
-      )}
-
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -158,28 +174,20 @@ async function confirmDelete() {
           </div>
 
           <div className="flex gap-3">
-            <a
-              href="/dashboard"
+            <button
+              onClick={() => router.push("/dashboard")}
               className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Voltar
-            </a>
+            </button>
 
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteModal(true)}
               disabled={deleting}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {deleting ? "Excluindo..." : "Excluir"}
             </button>
-
-            {/* Modal no final do JSX */}
-            <ConfirmModal
-              isOpen={showDeleteModal}
-              onClose={() => setShowDeleteModal(false)}
-              onConfirm={confirmDelete}
-              message={`Tem certeza que deseja excluir o assessment #${id}? Esta ação não pode ser desfeita.`}
-            />
           </div>
         </div>
 
@@ -232,7 +240,7 @@ async function confirmDelete() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-bold text-gray-900">Plano de 30 dias</h2>
             <ul className="space-y-3">
-              {planItems.map((item, index) => (
+              {planItems.map((item: string, index: number) => (
                 <li key={index} className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
                   {item}
                 </li>
@@ -243,18 +251,29 @@ async function confirmDelete() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-bold text-gray-900">Vagas exemplo</h2>
             <div className="flex flex-wrap gap-2">
-              {roleItems.map((role, index) => (
+              {roleItems.map((role: string, index: number) => (
                 <span
                   key={index}
                   className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
                 >
-                  {role.trim()}
+                  {role}
                 </span>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        loading={deleting}
+        title="Excluir assessment"
+        message={`Tem certeza que deseja excluir o assessment #${assessment.id}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
     </main>
   );
 }

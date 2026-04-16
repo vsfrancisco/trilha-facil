@@ -1,6 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+type AssessmentResult = {
+  recommended_track: string;
+  match_score: number;
+  reason: string;
+  example_roles: string;
+  plan_30_days: string;
+};
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -8,14 +16,30 @@ export default function Home() {
     education: "",
     current_field: "",
     target_salary: "",
-    interests: ""
+    interests: "",
   });
-  
-  const [result, setResult] = useState<any>(null);
+
+  const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const roles = useMemo(() => {
+    if (!result?.example_roles) return [];
+    return result.example_roles
+      .split(",")
+      .map((role: string) => role.trim())
+      .filter(Boolean);
+  }, [result]);
+
+  const planSteps = useMemo(() => {
+    if (!result?.plan_30_days) return [];
+    return result.plan_30_days
+      .split(" | ")
+      .map((step: string) => step.trim())
+      .filter(Boolean);
+  }, [result]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -27,30 +51,53 @@ export default function Home() {
         body: JSON.stringify({
           ...formData,
           target_salary: Number(formData.target_salary),
-          interests: formData.interests.split(",").map(i => i.trim())
+          interests: formData.interests,
         }),
       });
 
-      if (!res.ok) throw new Error("Falha ao comunicar com a API");
-      
-      const data = await res.json();
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Erro da API:", errorData);
+        throw new Error(errorData.detail || "Falha ao comunicar com a API");
+      }
+
+      const data: AssessmentResult = await res.json();
       setResult(data);
+
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message: "Trilha gerada com sucesso!",
+          type: "success",
+        });
+      }
     } catch (err) {
       console.error("Erro:", err);
-      setError("Erro ao conectar com o backend. O Uvicorn está rodando?");
+      const message =
+        err instanceof Error ? err.message : "Erro ao conectar com o backend.";
+
+      setError(message);
+
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message,
+          type: "error",
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12">
-      <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">TrilhaFácil 🚀</h1>
-        <p className="text-gray-600 mb-8">Descubra sua próxima carreira no mercado digital.</p>
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4 py-12">
+      <div className="w-full max-w-xl rounded-xl border border-gray-100 bg-white p-8 shadow-lg">
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">TrilhaFácil 🚀</h1>
+        <p className="mb-8 text-gray-600">
+          Descubra sua próxima carreira no mercado digital.
+        </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+          <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm font-medium text-red-700">
             {error}
           </div>
         )}
@@ -58,95 +105,171 @@ export default function Home() {
         {!result ? (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Área atual de trabalho</label>
-              <input type="text" required placeholder="Ex: Administrativo, Vendas, Finanças..."
-                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
-                onChange={e => setFormData({...formData, current_field: e.target.value})} />
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Área atual de trabalho
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Administrativo, Vendas, Finanças..."
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                value={formData.current_field}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, current_field: e.target.value })
+                }
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pretensão Salarial Inicial (R$)</label>
-              <input type="number" required placeholder="Ex: 3500"
-                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
-                onChange={e => setFormData({...formData, target_salary: e.target.value})} />
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Pretensão Salarial Inicial (R$)
+              </label>
+              <input
+                type="number"
+                required
+                placeholder="Ex: 3500"
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                value={formData.target_salary}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, target_salary: e.target.value })
+                }
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Interesses (separados por vírgula)</label>
-              <input type="text" required placeholder="Ex: planilhas, pessoas, redes sociais..."
-                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
-                onChange={e => setFormData({...formData, interests: e.target.value})} />
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Interesses (separados por vírgula)
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: planilhas, pessoas, redes sociais..."
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                value={formData.interests}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, interests: e.target.value })
+                }
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Idade</label>
-                 <input type="number" required placeholder="Ex: 26"
-                    className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
-                    onChange={e => setFormData({...formData, age: e.target.value})} />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Escolaridade</label>
-                 <select required className="w-full rounded-lg border border-gray-300 p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                    onChange={e => setFormData({...formData, education: e.target.value})}>
-                    <option value="" className="text-gray-400">Selecione...</option>
-                    <option value="Médio">Ensino Médio</option>
-                    <option value="Superior">Ensino Superior</option>
-                 </select>
-               </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Idade
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="Ex: 26"
+                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                  value={formData.age}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFormData({ ...formData, age: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Escolaridade
+                </label>
+                <select
+                  required
+                  value={formData.education}
+                  className="w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setFormData({ ...formData, education: e.target.value })
+                  }
+                >
+                  <option value="" className="text-gray-400">
+                    Selecione...
+                  </option>
+                  <option value="Médio">Ensino Médio</option>
+                  <option value="Superior">Ensino Superior</option>
+                </select>
+              </div>
             </div>
 
-            <button type="submit" disabled={loading} 
-              className="w-full mt-4 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold shadow-sm disabled:opacity-70 transition-all">
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white shadow-sm transition-all hover:bg-blue-700 disabled:opacity-70"
+            >
               {loading ? "Analisando perfil..." : "Descobrir minha trilha"}
             </button>
           </form>
         ) : (
-          <div className="bg-white rounded-xl text-center animate-in fade-in duration-500">
-            {/* Header de Resultado */}
-            <div className="bg-blue-50 rounded-t-xl p-6 border border-blue-100 border-b-0">
-              <h2 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-1">Trilha Recomendada</h2>
-              <p className="text-2xl font-extrabold text-blue-600 mb-1">{result.recommended_track}</p>
-              <p className="text-gray-600 font-medium text-sm">Match de {result.match_score}% com seu perfil 🎯</p>
+          <div className="animate-in fade-in rounded-xl bg-white text-center duration-500">
+            <div className="rounded-t-xl border border-b-0 border-blue-100 bg-blue-50 p-6">
+              <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-blue-800">
+                Trilha Recomendada
+              </h2>
+              <p className="mb-1 text-2xl font-extrabold text-blue-600">
+                {result.recommended_track}
+              </p>
+              <p className="text-sm font-medium text-gray-600">
+                Match de {result.match_score}% com seu perfil 🎯
+              </p>
             </div>
-            
-            {/* Corpo com Justificativa, Vagas e Plano */}
-            <div className="p-6 border border-gray-200 rounded-b-xl border-t-0 space-y-6 text-left">
-              
+
+            <div className="space-y-6 rounded-b-xl border border-t-0 border-gray-200 p-6 text-left">
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Por que essa trilha?</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{result.reason}</p>
+                <p className="mb-2 text-xs font-bold uppercase text-gray-400">
+                  Por que essa trilha?
+                </p>
+                <p className="text-sm leading-relaxed text-gray-700">
+                  {result.reason}
+                </p>
               </div>
-              
+
               <div>
-                 <p className="text-xs font-bold text-gray-400 uppercase mb-2">Vagas Frequentes (Para você pesquisar):</p>
-                 <div className="flex flex-wrap gap-2">
-                    {result.example_roles?.map((role: string, idx: number) => (
-                      <span key={idx} className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200">
-                        {role}
-                      </span>
-                    ))}
-                 </div>
+                <p className="mb-2 text-xs font-bold uppercase text-gray-400">
+                  Vagas Frequentes (Para você pesquisar):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {roles.map((role: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"
+                    >
+                      {role}
+                    </span>
+                  ))}
+                </div>
               </div>
-              
+
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase mb-3">Seu Plano de 30 Dias</p>
+                <p className="mb-3 text-xs font-bold uppercase text-gray-400">
+                  Seu Plano de 30 Dias
+                </p>
                 <ul className="space-y-2">
-                  {result.plan_30_days?.map((step: string, idx: number) => {
-                    const [week, task] = step.split(': ');
+                  {planSteps.map((step: string, idx: number) => {
+                    const [week, task] = step.split(": ");
+
                     return (
-                      <li key={idx} className="flex gap-3 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded w-fit whitespace-nowrap">
+                      <li
+                        key={idx}
+                        className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3"
+                      >
+                        <span className="w-fit whitespace-nowrap rounded bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">
                           {week}
                         </span>
-                        <span className="text-sm text-gray-800 pt-0.5">{task}</span>
+                        <span className="pt-0.5 text-sm text-gray-800">
+                          {task}
+                        </span>
                       </li>
                     );
                   })}
                 </ul>
               </div>
 
-              <button onClick={() => setResult(null)} className="block w-full text-center text-blue-600 font-semibold mt-4 hover:text-blue-800 hover:underline transition-colors pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setResult(null);
+                  setError("");
+                }}
+                className="mt-4 block w-full border-t border-gray-100 pt-4 text-center font-semibold text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+              >
                 ← Fazer um novo teste
               </button>
             </div>
