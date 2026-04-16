@@ -1,0 +1,14 @@
+# Ambiente Virtual Python
+backend/venv/
+backend/__pycache__/
+backend/.pytest_cache/
+
+# Node modules e Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.env
+
+# Logs e Misc
+*.log
+.DS_Store
