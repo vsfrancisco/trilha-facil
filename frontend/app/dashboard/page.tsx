@@ -21,7 +21,7 @@ type Assessment = {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="animate-pulse space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
         {[1, 2, 3, 4].map((item: number) => (
           <div key={item} className="h-28 rounded-xl border border-gray-200 bg-white" />
@@ -29,7 +29,6 @@ function DashboardSkeleton() {
       </div>
 
       <div className="h-72 rounded-xl border border-gray-200 bg-white" />
-
       <div className="h-96 rounded-xl border border-gray-200 bg-white" />
     </div>
   );
@@ -42,14 +41,17 @@ export default function DashboardPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [filterTrack, setFilterTrack] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   async function fetchAssessments() {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:8000/api/assessments?limit=50", {
+      const response = await fetch("http://localhost:8000/api/assessments?limit=100", {
         headers: {
           "X-Admin-Token": adminToken || "",
         },
@@ -111,33 +113,63 @@ export default function DashboardPage() {
     }
   }
 
+  function clearFilters() {
+    setFilterTrack("");
+    setStartDate("");
+    setEndDate("");
+
+    if ((window as any).addToast) {
+      (window as any).addToast({
+        message: "Filtros limpos.",
+        type: "info",
+      });
+    }
+  }
+
   useEffect(() => {
     fetchAssessments();
   }, []);
 
   const filteredAssessments = useMemo(() => {
-    return assessments.filter((item: Assessment) =>
-      item.recommended_track.toLowerCase().includes(filterTrack.toLowerCase())
-    );
-  }, [assessments, filterTrack]);
+    return assessments.filter((item: Assessment) => {
+      const matchesTrack = item.recommended_track
+        .toLowerCase()
+        .includes(filterTrack.toLowerCase());
+
+      const createdAt = new Date(item.created_at);
+
+      const matchesStart =
+        !startDate || createdAt >= new Date(`${startDate}T00:00:00`);
+
+      const matchesEnd =
+        !endDate || createdAt <= new Date(`${endDate}T23:59:59`);
+
+      return matchesTrack && matchesStart && matchesEnd;
+    });
+  }, [assessments, filterTrack, startDate, endDate]);
 
   const trackSummary = useMemo(() => {
     const summary: Record<string, number> = {};
 
-    assessments.forEach((item: Assessment) => {
+    filteredAssessments.forEach((item: Assessment) => {
       summary[item.recommended_track] = (summary[item.recommended_track] || 0) + 1;
     });
 
     return Object.entries(summary)
       .map(([track, count]) => ({ track, count }))
       .sort((a, b) => b.count - a.count);
-  }, [assessments]);
+  }, [filteredAssessments]);
 
   const averageMatchScore = useMemo(() => {
-    if (assessments.length === 0) return 0;
-    const total = assessments.reduce((acc: number, item: Assessment) => acc + item.match_score, 0);
-    return Math.round(total / assessments.length);
-  }, [assessments]);
+    if (filteredAssessments.length === 0) return 0;
+
+    const total = filteredAssessments.reduce(
+      (acc: number, item: Assessment) => acc + item.match_score,
+      0
+    );
+
+    return Math.round(total / filteredAssessments.length);
+  }, [filteredAssessments]);
 
   const topTrack = trackSummary.length > 0 ? trackSummary[0].track : "-";
 
@@ -186,6 +218,73 @@ export default function DashboardPage() {
           <DashboardSkeleton />
         ) : (
           <>
+            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="mb-4">
+                <h2 className="text-lg font-bold text-gray-900">Filtros</h2>
+                <p className="text-sm text-gray-500">
+                  Refine os dados por trilha e período de criação.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Filtrar por trilha
+                  </label>
+                  <input
+                    type="text"
+                    value={filterTrack}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setFilterTrack(e.target.value)
+                    }
+                    placeholder="Ex: Dados, Marketing, CS"
+                    className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Data inicial
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setStartDate(e.target.value)
+                    }
+                    className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Data final
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEndDate(e.target.value)
+                    }
+                    className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  onClick={clearFilters}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Limpar filtros
+                </button>
+
+                <div className="rounded-lg bg-gray-100 px-4 py-2 text-sm text-gray-600">
+                  {filteredAssessments.length} resultado(s) encontrado(s)
+                </div>
+              </div>
+            </div>
+
             <div className="mb-6 grid gap-4 md:grid-cols-4">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-gray-500">Total carregado</p>
@@ -194,7 +293,9 @@ export default function DashboardPage() {
 
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-gray-500">Após filtro</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">{filteredAssessments.length}</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+                  {filteredAssessments.length}
+                </p>
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -219,41 +320,25 @@ export default function DashboardPage() {
               <TrackBarChart data={trackSummary} />
             </div>
 
-            <div className="mb-6 grid gap-4 lg:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Filtrar por trilha
-                </label>
-                <input
-                  type="text"
-                  value={filterTrack}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setFilterTrack(e.target.value)
-                  }
-                  placeholder="Ex: Dados, Marketing, CS"
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <p className="mb-3 text-sm font-medium text-gray-700">Resumo por trilha</p>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="mb-3 text-sm font-medium text-gray-700">Resumo por trilha</p>
-                <div className="space-y-2">
-                  {trackSummary.length > 0 ? (
-                    trackSummary.map((item: { track: string; count: number }) => (
-                      <div
-                        key={item.track}
-                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
-                      >
-                        <span className="text-sm text-gray-700">{item.track}</span>
-                        <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                          {item.count}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">Sem dados ainda.</p>
-                  )}
-                </div>
+              <div className="space-y-2">
+                {trackSummary.length > 0 ? (
+                  trackSummary.map((item: { track: string; count: number }) => (
+                    <div
+                      key={item.track}
+                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                    >
+                      <span className="text-sm text-gray-700">{item.track}</span>
+                      <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                        {item.count}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">Sem dados para os filtros selecionados.</p>
+                )}
               </div>
             </div>
 
@@ -316,7 +401,7 @@ export default function DashboardPage() {
                         </td>
 
                         <td className="px-4 py-4 text-sm text-gray-500">
-                          {new Date(assessment.created_at).toLocaleString("pt-BR")}
+                          {new Date(assessment.created_at).toLocaleDateString("pt-BR")}
                         </td>
 
                         <td className="px-4 py-4 text-sm font-semibold text-blue-600">
