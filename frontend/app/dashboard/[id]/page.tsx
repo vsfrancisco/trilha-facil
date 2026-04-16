@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Toast from "@/components/Toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Assessment {
   id: number;
@@ -63,39 +64,45 @@ export default function AssessmentDetailPage() {
     }
   }, [id]);
 
-  async function handleDelete() {
-    const confirmed = window.confirm("Tem certeza que deseja excluir este assessment?");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-    if (!confirmed) return;
+async function handleDelete() {
+  setShowDeleteModal(true);
+}
 
-    try {
-      setDeleting(true);
+async function confirmDelete() {
+  const confirmed = true; // Modal já confirmou
+  if (!confirmed) return;
 
-      const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
-        method: "DELETE",
-        headers: {
-          "X-Admin-Token": adminToken || "",
-        },
-      });
+  try {
+    setDeleting(true);
+    setShowDeleteModal(false);
 
-      if (!response.ok) {
-        throw new Error("Falha ao excluir assessment");
-      }
+    const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
+      method: "DELETE",
+      headers: {
+        "X-Admin-Token": adminToken || "",
+      },
+    });
 
-      setToastMessage("Assessment excluído com sucesso.");
-      setToastType("success");
-
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 700);
-    } catch (err) {
-      console.error(err);
-      setToastMessage("Erro ao excluir assessment.");
-      setToastType("error");
-    } finally {
-      setDeleting(false);
+    if (!response.ok) {
+      throw new Error("Falha ao excluir assessment");
     }
+
+    setToastMessage("Assessment excluído com sucesso.");
+    setToastType("success");
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 700);
+  } catch (err) {
+    console.error(err);
+    setToastMessage("Erro ao excluir assessment.");
+    setToastType("error");
+  } finally {
+    setDeleting(false);
   }
+}
 
   if (loading) {
     return (
@@ -161,6 +168,14 @@ export default function AssessmentDetailPage() {
             >
               {deleting ? "Excluindo..." : "Excluir"}
             </button>
+
+            {/* Modal no final do JSX */}
+            <ConfirmModal
+              isOpen={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              onConfirm={confirmDelete}
+              message={`Tem certeza que deseja excluir o assessment #${id}? Esta ação não pode ser desfeita.`}
+            />
           </div>
         </div>
 
