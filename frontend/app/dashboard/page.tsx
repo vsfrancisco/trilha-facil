@@ -22,6 +22,7 @@ interface Assessment {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,11 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:8000/api/assessments?limit=50");
+      const response = await fetch("http://localhost:8000/api/assessments?limit=50", {
+        headers: {
+          "X-Admin-Token": adminToken || "",
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Falha ao buscar assessments");
@@ -46,7 +51,7 @@ export default function DashboardPage() {
       setAssessments(data);
     } catch (err) {
       console.error(err);
-      setError("Erro ao carregar dados do dashboard. Verifique se o backend está rodando.");
+      setError("Erro ao carregar dados do dashboard. Verifique backend e token admin.");
       setToastMessage("Não foi possível carregar os assessments.");
       setToastType("error");
     } finally {

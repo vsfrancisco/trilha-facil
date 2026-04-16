@@ -1,6 +1,7 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field
 from datetime import datetime
+from sqlmodel import SQLModel, Field
+
 
 class Assessment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -9,11 +10,9 @@ class Assessment(SQLModel, table=True):
     current_field: str
     target_salary: float
     interests: str
-
     recommended_track: str
-    match_score: int
+    match_score: float
     reason: str
     plan_30_days: str
     example_roles: str
-
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -23,6 +23,7 @@ export default function AssessmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id;
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,11 @@ export default function AssessmentDetailPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`http://localhost:8000/api/assessments/${id}`);
+        const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
+          headers: {
+            "X-Admin-Token": adminToken || "",
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Falha ao buscar assessment");
@@ -68,6 +73,9 @@ export default function AssessmentDetailPage() {
 
       const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
         method: "DELETE",
+        headers: {
+          "X-Admin-Token": adminToken || "",
+        },
       });
 
       if (!response.ok) {
