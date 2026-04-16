@@ -1,17 +1,28 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
+import os
+import secrets
 import random
 
+from dotenv import load_dotenv
 from database import create_db_and_tables, get_session
 from models import Assessment
-from schemas import AssessmentIn, AssessmentRead
+from schemas import AssessmentIn, AssessmentRead, LoginIn
+
+load_dotenv()
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "123456")
 
 app = FastAPI(title="TrilhaFácil API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -192,3 +203,26 @@ def delete_assessment(assessment_id: int, session: Session = Depends(get_session
     session.commit()
 
     return {"ok": True, "message": "Assessment excluído com sucesso"}
+
+@app.post("/api/login")
+def login(data: LoginIn, response: Response):
+    username_ok = secrets.compare_digest(data.username, ADMIN_USERNAME)
+    password_ok = secrets.compare_digest(data.password, ADMIN_PASSWORD)
+
+    if not (username_ok and password_ok):
+        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
+
+    response.set_cookie(
+        key="admin_auth",
+        value="true",
+        httponly=True,
+        samesite="lax",
+        secure=False
+    )
+
+    return {"ok": True, "message": "Login realizado com sucesso"}
+
+@app.post("/api/logout")
+def logout(response: Response):
+    response.delete_cookie("admin_auth")
+    return {"ok": True, "message": "Logout realizado com sucesso"}

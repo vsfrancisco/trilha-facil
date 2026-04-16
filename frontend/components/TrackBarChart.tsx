@@ -24,8 +24,8 @@ const COLORS = ["#2563eb", "#7c3aed", "#059669", "#ea580c", "#dc2626", "#0891b2"
 
 export default function TrackBarChart({ data }: TrackBarChartProps) {
   return (
-    <div className="h-[320px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full min-w-0 h-[320px]">
+      <ResponsiveContainer width="100%" height={320} minWidth={280}>
         <BarChart
           data={data}
           margin={{ top: 10, right: 20, left: 0, bottom: 10 }}

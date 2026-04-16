@@ -24,3 +24,7 @@ class AssessmentRead(BaseModel):
     example_roles: str
 
     created_at: datetime
+
+class LoginIn(BaseModel):
+    username: str
+    password: str

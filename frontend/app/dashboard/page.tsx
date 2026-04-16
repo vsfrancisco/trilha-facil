@@ -29,7 +29,7 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://127.0.0.1:8000/api/assessments?limit=50");
+      const response = await fetch("http://localhost:8000/api/assessments?limit=50");
 
       if (!response.ok) {
         throw new Error("Falha ao buscar assessments");
@@ -45,9 +45,19 @@ export default function DashboardPage() {
     }
   }
 
+    async function handleLogout() {
+    await fetch("/api/logout", {
+        method: "POST",
+    });
+
+    window.location.href = "/login";
+    }
+
   useEffect(() => {
     fetchAssessments();
   }, []);
+
+  
 
   const filteredAssessments = useMemo(() => {
     return assessments.filter((item) =>
@@ -99,6 +109,12 @@ export default function DashboardPage() {
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Recarregar
+            </button>
+            <button
+                onClick={handleLogout}
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                >
+                Sair
             </button>
           </div>
         </div>

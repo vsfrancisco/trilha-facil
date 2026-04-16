@@ -34,7 +34,7 @@ export default function AssessmentDetailPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`http://127.0.0.1:8000/api/assessments/${id}`);
+        const response = await fetch(`http://localhost:8000/api/assessments/${id}`);
 
         if (!response.ok) {
           throw new Error("Falha ao buscar assessment");
@@ -63,7 +63,7 @@ export default function AssessmentDetailPage() {
     try {
       setDeleting(true);
 
-      const response = await fetch(`http://127.0.0.1:8000/api/assessments/${id}`, {
+      const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
         method: "DELETE",
       });
 
