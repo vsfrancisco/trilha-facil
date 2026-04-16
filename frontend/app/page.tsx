@@ -50,7 +50,7 @@ export default function Home() {
         <p className="text-gray-600 mb-8">Descubra sua próxima carreira no mercado digital.</p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
             {error}
           </div>
         )}
@@ -60,21 +60,21 @@ export default function Home() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Área atual de trabalho</label>
               <input type="text" required placeholder="Ex: Administrativo, Vendas, Finanças..."
-                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
                 onChange={e => setFormData({...formData, current_field: e.target.value})} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Pretensão Salarial Inicial (R$)</label>
               <input type="number" required placeholder="Ex: 3500"
-                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
                 onChange={e => setFormData({...formData, target_salary: e.target.value})} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Interesses (separados por vírgula)</label>
-              <input type="text" required placeholder="Ex: planilhas, clientes, redes sociais..."
-                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+              <input type="text" required placeholder="Ex: planilhas, pessoas, redes sociais..."
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
                 onChange={e => setFormData({...formData, interests: e.target.value})} />
             </div>
 
@@ -82,14 +82,14 @@ export default function Home() {
                <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">Idade</label>
                  <input type="number" required placeholder="Ex: 26"
-                    className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400"
                     onChange={e => setFormData({...formData, age: e.target.value})} />
                </div>
                <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">Escolaridade</label>
-                 <select required className="w-full rounded-lg border border-gray-300 p-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                 <select required className="w-full rounded-lg border border-gray-300 p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                     onChange={e => setFormData({...formData, education: e.target.value})}>
-                    <option value="">Selecione...</option>
+                    <option value="" className="text-gray-400">Selecione...</option>
                     <option value="Médio">Ensino Médio</option>
                     <option value="Superior">Ensino Superior</option>
                  </select>
@@ -102,26 +102,54 @@ export default function Home() {
             </button>
           </form>
         ) : (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center animate-in fade-in duration-300">
-            <h2 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-1">Trilha Recomendada</h2>
-            <p className="text-2xl font-extrabold text-blue-600 mb-1">{result.recommended_track}</p>
-            <p className="text-gray-600 mb-6 font-medium text-sm">Match de {result.match_score}% com seu perfil 🎯</p>
+          <div className="bg-white rounded-xl text-center animate-in fade-in duration-500">
+            {/* Header de Resultado */}
+            <div className="bg-blue-50 rounded-t-xl p-6 border border-blue-100 border-b-0">
+              <h2 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-1">Trilha Recomendada</h2>
+              <p className="text-2xl font-extrabold text-blue-600 mb-1">{result.recommended_track}</p>
+              <p className="text-gray-600 font-medium text-sm">Match de {result.match_score}% com seu perfil 🎯</p>
+            </div>
             
-            <div className="space-y-3 mb-8">
-              <div className="bg-white p-4 rounded-lg border border-blue-100 text-left shadow-sm">
-                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Por que essa trilha?</p>
+            {/* Corpo com Justificativa, Vagas e Plano */}
+            <div className="p-6 border border-gray-200 rounded-b-xl border-t-0 space-y-6 text-left">
+              
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Por que essa trilha?</p>
                 <p className="text-sm text-gray-700 leading-relaxed">{result.reason}</p>
               </div>
               
-              <div className="bg-white p-4 rounded-lg border border-blue-100 text-left shadow-sm border-l-4 border-l-blue-500">
-                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Plano de 30 dias (Primeiro Passo):</p>
-                <p className="text-sm font-semibold text-gray-800">{result.next_step}</p>
+              <div>
+                 <p className="text-xs font-bold text-gray-400 uppercase mb-2">Vagas Frequentes (Para você pesquisar):</p>
+                 <div className="flex flex-wrap gap-2">
+                    {result.example_roles?.map((role: string, idx: number) => (
+                      <span key={idx} className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200">
+                        {role}
+                      </span>
+                    ))}
+                 </div>
               </div>
-            </div>
+              
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase mb-3">Seu Plano de 30 Dias</p>
+                <ul className="space-y-2">
+                  {result.plan_30_days?.map((step: string, idx: number) => {
+                    const [week, task] = step.split(': ');
+                    return (
+                      <li key={idx} className="flex gap-3 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded w-fit whitespace-nowrap">
+                          {week}
+                        </span>
+                        <span className="text-sm text-gray-800 pt-0.5">{task}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
 
-            <button onClick={() => setResult(null)} className="block w-full text-blue-600 font-medium hover:text-blue-800 hover:underline">
-              Refazer diagnóstico
-            </button>
+              <button onClick={() => setResult(null)} className="block w-full text-center text-blue-600 font-semibold mt-4 hover:text-blue-800 hover:underline transition-colors pt-4 border-t border-gray-100">
+                ← Fazer um novo teste
+              </button>
+            </div>
           </div>
         )}
       </div>
