@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Toast from "@/components/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
+
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+
+    if (reason === "expired") {
+      setToastMessage("Sua sessão expirou. Faça login novamente.");
+      setToastType("info");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,10 +45,17 @@ export default function LoginPage() {
         throw new Error(data.detail || "Falha no login");
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      setToastMessage("Login realizado com sucesso.");
+      setToastType("success");
+
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 600);
     } catch (err: any) {
       setError(err.message || "Erro ao realizar login");
+      setToastMessage(err.message || "Erro ao realizar login");
+      setToastType("error");
     } finally {
       setLoading(false);
     }
@@ -43,6 +63,14 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage("")}
+        />
+      )}
+
       <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="mb-2 text-2xl font-bold text-gray-900">Login do painel</h1>
         <p className="mb-6 text-sm text-gray-500">

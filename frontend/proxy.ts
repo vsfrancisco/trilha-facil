@@ -8,7 +8,9 @@ export function proxy(request: NextRequest) {
   const isLoginRoute = pathname.startsWith("/login");
 
   if (isDashboardRoute && authCookie !== "true") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("reason", "expired");
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isLoginRoute && authCookie === "true") {

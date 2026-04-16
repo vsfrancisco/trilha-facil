@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Toast from "@/components/Toast";
 
 interface Assessment {
   id: number;
@@ -27,6 +28,8 @@ export default function AssessmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
 
   useEffect(() => {
     async function fetchAssessment() {
@@ -71,11 +74,16 @@ export default function AssessmentDetailPage() {
         throw new Error("Falha ao excluir assessment");
       }
 
-      alert("Assessment excluído com sucesso.");
-      router.push("/dashboard");
+      setToastMessage("Assessment excluído com sucesso.");
+      setToastType("success");
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 700);
     } catch (err) {
       console.error(err);
-      alert("Erro ao excluir assessment.");
+      setToastMessage("Erro ao excluir assessment.");
+      setToastType("error");
     } finally {
       setDeleting(false);
     }
@@ -112,6 +120,14 @@ export default function AssessmentDetailPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-6 py-10">
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage("")}
+        />
+      )}
+
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -190,8 +206,7 @@ export default function AssessmentDetailPage() {
             <h2 className="mb-4 text-lg font-bold text-gray-900">Plano de 30 dias</h2>
             <ul className="space-y-3">
               {planItems.map((item, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="mr-2 text-blue-500">•</span>
+                <li key={index} className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
                   {item}
                 </li>
               ))}

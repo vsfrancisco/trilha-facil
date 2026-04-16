@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import TrackBarChart from "@/components/TrackBarChart";
+import Toast from "@/components/Toast";
 
 interface Assessment {
   id: number;
@@ -19,10 +21,15 @@ interface Assessment {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterTrack, setFilterTrack] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function fetchAssessments() {
     try {
@@ -40,24 +47,44 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar dados do dashboard. Verifique se o backend está rodando.");
+      setToastMessage("Não foi possível carregar os assessments.");
+      setToastType("error");
     } finally {
       setLoading(false);
     }
   }
 
-    async function handleLogout() {
-    await fetch("/api/logout", {
-        method: "POST",
-    });
+  async function handleLogout() {
+    try {
+      setLoggingOut(true);
 
-    window.location.href = "/login";
+      const response = await fetch("/api/logout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao realizar logout");
+      }
+
+      setToastMessage("Logout realizado com sucesso.");
+      setToastType("success");
+
+      setTimeout(() => {
+        router.push("/login");
+        router.refresh();
+      }, 600);
+    } catch (err) {
+      console.error(err);
+      setToastMessage("Erro ao realizar logout.");
+      setToastType("error");
+    } finally {
+      setLoggingOut(false);
     }
+  }
 
   useEffect(() => {
     fetchAssessments();
   }, []);
-
-  
 
   const filteredAssessments = useMemo(() => {
     return assessments.filter((item) =>
@@ -87,6 +114,14 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 py-10">
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage("")}
+        />
+      )}
+
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -96,7 +131,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <a
               href="/"
               className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -110,11 +145,13 @@ export default function DashboardPage() {
             >
               Recarregar
             </button>
+
             <button
-                onClick={handleLogout}
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-                >
-                Sair
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loggingOut ? "Saindo..." : "Sair"}
             </button>
           </div>
         </div>
@@ -139,6 +176,17 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500">Match médio</p>
             <p className="mt-2 text-3xl font-bold text-gray-900">{averageMatchScore}%</p>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-gray-900">Distribuição por trilha</h2>
+            <p className="text-sm text-gray-500">
+              Quantidade de assessments agrupados por trilha recomendada.
+            </p>
+          </div>
+
+          <TrackBarChart data={trackSummary} />
         </div>
 
         <div className="mb-6 grid gap-4 lg:grid-cols-3">
@@ -177,17 +225,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-    <div className="mb-4">
-        <h2 className="text-lg font-bold text-gray-900">Distribuição por trilha</h2>
-        <p className="text-sm text-gray-500">
-        Quantidade de assessments agrupados por trilha recomendada.
-        </p>
-    </div>
-
-    <TrackBarChart data={trackSummary} />
-    </div>
-
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             {error}
@@ -221,52 +258,52 @@ export default function DashboardPage() {
                       Data
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                        Ações
+                      Ações
                     </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                    {filteredAssessments.map((assessment) => (
-                        <tr
-                        key={assessment.id}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => {
-                            window.location.href = `/dashboard/${assessment.id}`;
-                        }}
-                        >
-                        <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                            {assessment.id}
-                        </td>
+                  {filteredAssessments.map((assessment) => (
+                    <tr
+                      key={assessment.id}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        window.location.href = `/dashboard/${assessment.id}`;
+                      }}
+                    >
+                      <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                        {assessment.id}
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-gray-900">
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
-                            {assessment.recommended_track}
-                            </span>
-                        </td>
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
+                          {assessment.recommended_track}
+                        </span>
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-gray-900">
-                            {assessment.match_score}%
-                        </td>
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        {assessment.match_score}%
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-gray-700">
-                            {assessment.current_field}
-                        </td>
+                      <td className="px-4 py-4 text-sm text-gray-700">
+                        {assessment.current_field}
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-gray-700">
-                            R$ {assessment.target_salary.toLocaleString("pt-BR")}
-                        </td>
+                      <td className="px-4 py-4 text-sm text-gray-700">
+                        R$ {assessment.target_salary.toLocaleString("pt-BR")}
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-gray-500">
-                            {new Date(assessment.created_at).toLocaleString("pt-BR")}
-                        </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        {new Date(assessment.created_at).toLocaleString("pt-BR")}
+                      </td>
 
-                        <td className="px-4 py-4 text-sm text-blue-600 font-semibold">
-                            Ver detalhes
-                        </td>
-                        </tr>
-                    ))}
-                    </tbody>
+                      <td className="px-4 py-4 text-sm font-semibold text-blue-600">
+                        Ver detalhes
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
 

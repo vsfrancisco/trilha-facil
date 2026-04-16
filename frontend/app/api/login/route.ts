@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const SESSION_MAX_AGE = 60 * 5;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 8,
+      maxAge: SESSION_MAX_AGE,
     });
 
     return response;
