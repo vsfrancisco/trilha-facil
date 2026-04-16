@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 interface Assessment {
   id: number;
@@ -20,11 +20,13 @@ interface Assessment {
 
 export default function AssessmentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchAssessment() {
@@ -53,6 +55,32 @@ export default function AssessmentDetailPage() {
     }
   }, [id]);
 
+  async function handleDelete() {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este assessment?");
+
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+
+      const response = await fetch(`http://127.0.0.1:8000/api/assessments/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao excluir assessment");
+      }
+
+      alert("Assessment excluído com sucesso.");
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao excluir assessment.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
@@ -68,7 +96,10 @@ export default function AssessmentDetailPage() {
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto max-w-4xl rounded-xl border border-red-200 bg-red-50 p-8 shadow-sm">
           <p className="text-red-700">{error || "Assessment não encontrado."}</p>
-          <a href="/dashboard" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
+          <a
+            href="/dashboard"
+            className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline"
+          >
             Voltar ao dashboard
           </a>
         </div>
@@ -82,7 +113,7 @@ export default function AssessmentDetailPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-6 py-10">
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-gray-500">Assessment #{assessment.id}</p>
             <h1 className="text-3xl font-bold text-gray-900">{assessment.recommended_track}</h1>
@@ -91,12 +122,22 @@ export default function AssessmentDetailPage() {
             </p>
           </div>
 
-          <a
-            href="/dashboard"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            Voltar
-          </a>
+          <div className="flex gap-3">
+            <a
+              href="/dashboard"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Voltar
+            </a>
+
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -150,7 +191,7 @@ export default function AssessmentDetailPage() {
             <ul className="space-y-3">
               {planItems.map((item, index) => (
                 <li key={index} className="flex items-start">
-                  <span className="mr-2 mt-1 text-blue-500">•</span>
+                  <span className="mr-2 text-blue-500">•</span>
                   {item}
                 </li>
               ))}

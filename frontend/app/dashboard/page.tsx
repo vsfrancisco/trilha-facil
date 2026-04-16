@@ -204,45 +204,53 @@ export default function DashboardPage() {
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                       Data
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                        Ações
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredAssessments.map((assessment) => (
-                    <tr key={assessment.id}
+                    {filteredAssessments.map((assessment) => (
+                        <tr
+                        key={assessment.id}
                         className="cursor-pointer hover:bg-gray-50"
                         onClick={() => {
                             window.location.href = `/dashboard/${assessment.id}`;
                         }}
                         >
-                      <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                        {assessment.id}
-                      </td>
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                            {assessment.id}
+                        </td>
 
-                      <td className="px-4 py-4 text-sm text-gray-900">
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
-                          {assessment.recommended_track}
-                        </span>
-                      </td>
+                        <td className="px-4 py-4 text-sm text-gray-900">
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
+                            {assessment.recommended_track}
+                            </span>
+                        </td>
 
-                      <td className="px-4 py-4 text-sm text-gray-900">
-                        {assessment.match_score}%
-                      </td>
+                        <td className="px-4 py-4 text-sm text-gray-900">
+                            {assessment.match_score}%
+                        </td>
 
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {assessment.current_field}
-                      </td>
+                        <td className="px-4 py-4 text-sm text-gray-700">
+                            {assessment.current_field}
+                        </td>
 
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        R$ {assessment.target_salary.toLocaleString("pt-BR")}
-                      </td>
+                        <td className="px-4 py-4 text-sm text-gray-700">
+                            R$ {assessment.target_salary.toLocaleString("pt-BR")}
+                        </td>
 
-                      <td className="px-4 py-4 text-sm text-gray-500">
-                        {new Date(assessment.created_at).toLocaleString("pt-BR")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                        <td className="px-4 py-4 text-sm text-gray-500">
+                            {new Date(assessment.created_at).toLocaleString("pt-BR")}
+                        </td>
+
+                        <td className="px-4 py-4 text-sm text-blue-600 font-semibold">
+                            Ver detalhes
+                        </td>
+                        </tr>
+                    ))}
+                    </tbody>
               </table>
             </div>
 
