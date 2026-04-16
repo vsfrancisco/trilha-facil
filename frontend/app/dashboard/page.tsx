@@ -1,0 +1,247 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+interface Assessment {
+  id: number;
+  age: string;
+  education: string;
+  current_field: string;
+  target_salary: number;
+  interests: string;
+  recommended_track: string;
+  match_score: number;
+  reason: string;
+  plan_30_days: string;
+  example_roles: string;
+  created_at: string;
+}
+
+export default function DashboardPage() {
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filterTrack, setFilterTrack] = useState("");
+
+  async function fetchAssessments() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("http://127.0.0.1:8000/api/assessments?limit=50");
+
+      if (!response.ok) {
+        throw new Error("Falha ao buscar assessments");
+      }
+
+      const data = await response.json();
+      setAssessments(data);
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao carregar dados do dashboard. Verifique se o backend está rodando.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchAssessments();
+  }, []);
+
+  const filteredAssessments = useMemo(() => {
+    return assessments.filter((item) =>
+      item.recommended_track.toLowerCase().includes(filterTrack.toLowerCase())
+    );
+  }, [assessments, filterTrack]);
+
+  const trackSummary = useMemo(() => {
+    const summary: Record<string, number> = {};
+
+    assessments.forEach((item) => {
+      summary[item.recommended_track] = (summary[item.recommended_track] || 0) + 1;
+    });
+
+    return Object.entries(summary)
+      .map(([track, count]) => ({ track, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [assessments]);
+
+  const averageMatchScore = useMemo(() => {
+    if (assessments.length === 0) return 0;
+    const total = assessments.reduce((acc, item) => acc + item.match_score, 0);
+    return Math.round(total / assessments.length);
+  }, [assessments]);
+
+  const topTrack = trackSummary.length > 0 ? trackSummary[0].track : "-";
+
+  return (
+    <main className="min-h-screen bg-gray-50 p-4 py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Visualize os últimos diagnósticos gerados pela aplicação.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <a
+              href="/"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Voltar para Home
+            </a>
+
+            <button
+              onClick={fetchAssessments}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Recarregar
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">Total carregado</p>
+            <p className="mt-2 text-3xl font-bold text-gray-900">{assessments.length}</p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">Após filtro</p>
+            <p className="mt-2 text-3xl font-bold text-gray-900">{filteredAssessments.length}</p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">Trilha líder</p>
+            <p className="mt-2 text-lg font-bold text-gray-900">{topTrack}</p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">Match médio</p>
+            <p className="mt-2 text-3xl font-bold text-gray-900">{averageMatchScore}%</p>
+          </div>
+        </div>
+
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Filtrar por trilha
+            </label>
+            <input
+              type="text"
+              value={filterTrack}
+              onChange={(e) => setFilterTrack(e.target.value)}
+              placeholder="Ex: Dados, Marketing, CS"
+              className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="mb-3 text-sm font-medium text-gray-700">Resumo por trilha</p>
+            <div className="space-y-2">
+              {trackSummary.length > 0 ? (
+                trackSummary.map((item) => (
+                  <div
+                    key={item.track}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                  >
+                    <span className="text-sm text-gray-700">{item.track}</span>
+                    <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                      {item.count}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Sem dados ainda.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            {error}
+          </div>
+        ) : loading ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600 shadow-sm">
+            Carregando dashboard...
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Trilha
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Match
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Área atual
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Pretensão
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Data
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-200">
+                  {filteredAssessments.map((assessment) => (
+                    <tr key={assessment.id}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() => {
+                            window.location.href = `/dashboard/${assessment.id}`;
+                        }}
+                        >
+                      <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                        {assessment.id}
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
+                          {assessment.recommended_track}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        {assessment.match_score}%
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-gray-700">
+                        {assessment.current_field}
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-gray-700">
+                        R$ {assessment.target_salary.toLocaleString("pt-BR")}
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        {new Date(assessment.created_at).toLocaleString("pt-BR")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredAssessments.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                Nenhum assessment encontrado para esse filtro.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
