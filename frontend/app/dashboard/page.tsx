@@ -24,12 +24,12 @@ function DashboardSkeleton() {
     <div className="animate-pulse space-y-4 sm:space-y-6">
       <div className="grid gap-3 sm:gap-4 md:grid-cols-4">
         {[1, 2, 3, 4].map((item: number) => (
-          <div key={item} className="h-24 sm:h-28 rounded-xl border border-gray-200 bg-white" />
+          <div key={item} className="h-24 rounded-xl border border-gray-200 bg-white sm:h-28" />
         ))}
       </div>
 
-      <div className="h-64 sm:h-72 rounded-xl border border-gray-200 bg-white" />
-      <div className="h-80 sm:h-96 rounded-xl border border-gray-200 bg-white" />
+      <div className="h-64 rounded-xl border border-gray-200 bg-white sm:h-72" />
+      <div className="h-80 rounded-xl border border-gray-200 bg-white sm:h-96" />
     </div>
   );
 }
@@ -126,6 +126,88 @@ export default function DashboardPage() {
     }
   }
 
+  function escapeCsvValue(value: string | number) {
+    const stringValue = String(value ?? "");
+    const escaped = stringValue.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+
+  function handleExportCsv() {
+    if (filteredAssessments.length === 0) {
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message: "Não há dados para exportar com os filtros atuais.",
+          type: "info",
+        });
+      }
+      return;
+    }
+
+    const headers = [
+      "id",
+      "idade",
+      "escolaridade",
+      "area_atual",
+      "pretensao_salarial",
+      "interesses",
+      "trilha_recomendada",
+      "match_score",
+      "justificativa",
+      "plano_30_dias",
+      "cargos_exemplo",
+      "created_at",
+    ];
+
+    const rows = filteredAssessments.map((item: Assessment) => [
+      item.id,
+      item.age,
+      item.education,
+      item.current_field,
+      item.target_salary,
+      item.interests,
+      item.recommended_track,
+      item.match_score,
+      item.reason,
+      item.plan_30_days,
+      item.example_roles,
+      new Date(item.created_at).toLocaleString("pt-BR"),
+    ]);
+
+    const csvContent = [
+      headers.map((header: string) => escapeCsvValue(header)).join(","),
+      ...rows.map((row: (string | number)[]) =>
+        row.map((cell: string | number) => escapeCsvValue(cell)).join(",")
+      ),
+    ].join("\n");
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const now = new Date();
+    const fileName = `assessments-export-${now
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.csv`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if ((window as any).addToast) {
+      (window as any).addToast({
+        message: "CSV exportado com sucesso.",
+        type: "success",
+      });
+    }
+  }
+
   useEffect(() => {
     fetchAssessments();
   }, []);
@@ -184,7 +266,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
             <a
               href="/"
               className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -197,6 +279,13 @@ export default function DashboardPage() {
               className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Recarregar
+            </button>
+
+            <button
+              onClick={handleExportCsv}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+            >
+              Exportar CSV
             </button>
 
             <button

@@ -96,6 +96,17 @@ export default function AssessmentDetailPage() {
       .filter(Boolean);
   }, [assessment]);
 
+  function handlePrintPdf() {
+    window.print();
+
+    if ((window as any).addToast) {
+      (window as any).addToast({
+        message: "Janela de impressão aberta. Escolha 'Salvar como PDF'.",
+        type: "info",
+      });
+    }
+  }
+
   async function confirmDelete() {
     try {
       setDeleting(true);
@@ -137,7 +148,7 @@ export default function AssessmentDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6 sm:py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-6 print:bg-white print:p-0 sm:p-6 sm:py-10">
         <div className="mx-auto max-w-4xl">
           <DetailSkeleton />
         </div>
@@ -164,135 +175,194 @@ export default function AssessmentDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6 sm:py-10">
-      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
-        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 md:flex-row md:items-center md:justify-between">
-          <div>
+    <>
+      <style jsx global>{`
+        @media print {
+          body {
+            background: white !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .print-container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .print-card {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          .print-title {
+            font-size: 24px !important;
+          }
+
+          .print-section-title {
+            font-size: 16px !important;
+          }
+        }
+      `}</style>
+
+      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-6 sm:py-10 print:bg-white print:p-0">
+        <div className="print-container mx-auto max-w-4xl space-y-4 sm:space-y-6">
+          <div className="no-print flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Assessment #{assessment.id}</p>
+              <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                {assessment.recommended_track}
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Criado em {new Date(assessment.created_at).toLocaleString("pt-BR")}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Voltar
+              </button>
+
+              <button
+                onClick={handlePrintPdf}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Exportar PDF
+              </button>
+
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                disabled={deleting}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden print:block rounded-xl border border-gray-200 bg-white p-6">
             <p className="text-sm text-gray-500">Assessment #{assessment.id}</p>
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              {assessment.recommended_track}
+            <h1 className="print-title text-3xl font-bold text-gray-900">
+              Relatório de Assessment
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Criado em {new Date(assessment.created_at).toLocaleString("pt-BR")}
+            <p className="mt-2 text-sm text-gray-600">
+              Trilha recomendada: <strong>{assessment.recommended_track}</strong>
+            </p>
+            <p className="text-sm text-gray-600">
+              Gerado em {new Date(assessment.created_at).toLocaleString("pt-BR")}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Voltar
-            </button>
-
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              disabled={deleting}
-              className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {deleting ? "Excluindo..." : "Excluir"}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-gray-500">Match Score</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-              {assessment.match_score}%
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-gray-500">Pretensão Salarial</p>
-            <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
-              R$ {assessment.target_salary.toLocaleString("pt-BR")}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 sm:col-span-2 xl:col-span-1">
-            <p className="text-sm text-gray-500">Escolaridade</p>
-            <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
-              {assessment.education}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">Perfil informado</h2>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-gray-500">Idade</p>
-              <p className="font-medium text-gray-900">{assessment.age}</p>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <p className="text-sm text-gray-500">Match Score</p>
+              <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+                {assessment.match_score}%
+              </p>
             </div>
 
-            <div>
-              <p className="text-sm text-gray-500">Área atual</p>
-              <p className="font-medium text-gray-900">{assessment.current_field}</p>
+            <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <p className="text-sm text-gray-500">Pretensão Salarial</p>
+              <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                R$ {assessment.target_salary.toLocaleString("pt-BR")}
+              </p>
             </div>
 
-            <div className="md:col-span-2">
-              <p className="text-sm text-gray-500">Interesses</p>
-              <p className="font-medium text-gray-900 break-words">
-                {assessment.interests}
+            <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 sm:col-span-2 xl:col-span-1">
+              <p className="text-sm text-gray-500">Escolaridade</p>
+              <p className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                {assessment.education}
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">Justificativa</h2>
-          <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
-            {assessment.reason}
-          </p>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-2 xl:gap-6">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">
-              Plano de 30 dias
+          <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="print-section-title mb-4 text-base font-bold text-gray-900 sm:text-lg">
+              Perfil informado
             </h2>
-            <ul className="space-y-3">
-              {planItems.map((item: string, index: number) => (
-                <li
-                  key={index}
-                  className="rounded-lg bg-gray-50 p-3 text-sm leading-relaxed text-gray-700"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-gray-500">Idade</p>
+                <p className="font-medium text-gray-900">{assessment.age}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Área atual</p>
+                <p className="font-medium text-gray-900">{assessment.current_field}</p>
+              </div>
+
+              <div className="md:col-span-2">
+                <p className="text-sm text-gray-500">Interesses</p>
+                <p className="break-words font-medium text-gray-900">
+                  {assessment.interests}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-base font-bold text-gray-900 sm:text-lg">
-              Vagas exemplo
+          <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="print-section-title mb-4 text-base font-bold text-gray-900 sm:text-lg">
+              Justificativa
             </h2>
-            <div className="flex flex-wrap gap-2">
-              {roleItems.map((role: string, index: number) => (
-                <span
-                  key={index}
-                  className="rounded-full bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-800"
-                >
-                  {role}
-                </span>
-              ))}
+            <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
+              {assessment.reason}
+            </p>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2 xl:gap-6">
+            <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+              <h2 className="print-section-title mb-4 text-base font-bold text-gray-900 sm:text-lg">
+                Plano de 30 dias
+              </h2>
+              <ul className="space-y-3">
+                {planItems.map((item: string, index: number) => (
+                  <li
+                    key={index}
+                    className="rounded-lg bg-gray-50 p-3 text-sm leading-relaxed text-gray-700"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="print-card rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+              <h2 className="print-section-title mb-4 text-base font-bold text-gray-900 sm:text-lg">
+                Vagas exemplo
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {roleItems.map((role: string, index: number) => (
+                  <span
+                    key={index}
+                    className="rounded-full bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-800"
+                  >
+                    {role}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={confirmDelete}
-        loading={deleting}
-        title="Excluir assessment"
-        message={`Tem certeza que deseja excluir o assessment #${assessment.id}? Esta ação não pode ser desfeita.`}
-        confirmText="Excluir"
-        cancelText="Cancelar"
-      />
-    </main>
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={confirmDelete}
+          loading={deleting}
+          title="Excluir assessment"
+          message={`Tem certeza que deseja excluir o assessment #${assessment.id}? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+        />
+      </main>
+    </>
   );
 }
