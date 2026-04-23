@@ -412,9 +412,9 @@ export default function AssessmentDetailPage() {
         onConfirm={handleDelete}
         title="Excluir assessment"
         message="Tem certeza que deseja excluir este assessment? Essa ação não pode ser desfeita."
-        confirmText={isDeleting ? "Excluindo..." : "Confirmar exclusão"}
-        cancelText="Cancelar"
-        loading={isDeleting}
+        cancelLabel="Cancelar"
+        confirmLabel="Excluir"
+        isConfirming={isDeleting}
       />
     </>
   );
