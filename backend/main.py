@@ -110,30 +110,12 @@ def root():
 
 @app.get("/health")
 def health():
-    db_ok = False
-
-    try:
-        with Session(engine) as session:
-            session.exec(text("SELECT 1"))
-        db_ok = True
-    except SQLAlchemyError:
-        db_ok = False
-    except Exception:
-        db_ok = False
-
-    status_text = "ok" if db_ok else "degraded"
-    status_code = 200 if db_ok else 503
-
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "status": status_text,
-            "app": settings.app_name,
-            "environment": settings.environment,
-            "database": "connected" if db_ok else "disconnected",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
-    )
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "environment": settings.environment,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @app.get("/ready")
@@ -146,6 +128,8 @@ def ready():
             "status": "ready",
             "app": settings.app_name,
             "environment": settings.environment,
+            "database": "connected",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception:
         return JSONResponse(
@@ -154,6 +138,8 @@ def ready():
                 "status": "not_ready",
                 "app": settings.app_name,
                 "environment": settings.environment,
+                "database": "disconnected",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
 
