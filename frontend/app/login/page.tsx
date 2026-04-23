@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Toast from "@/components/Toast";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -12,25 +11,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
 
-  useEffect(() => {
-    const reason = searchParams.get("reason");
-
-    if (reason === "expired") {
-      setToastMessage("Sua sessão expirou. Faça login novamente.");
-      setToastType("info");
-    }
-  }, [searchParams]);
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
-      setLoading(true);
-      setError("");
-
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
@@ -39,43 +28,47 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.detail || "Falha no login");
+        throw new Error(data?.detail || "Falha no login.");
       }
 
-      setToastMessage("Login realizado com sucesso.");
-      setToastType("success");
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message: "Login realizado com sucesso.",
+          type: "success",
+        });
+      }
 
-      setTimeout(() => {
-        router.push("/dashboard");
-        router.refresh();
-      }, 600);
-    } catch (err: any) {
-      setError(err.message || "Erro ao realizar login");
-      setToastMessage(err.message || "Erro ao realizar login");
-      setToastType("error");
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : "Erro ao fazer login.";
+      setError(message);
+
+      if ((window as any).addToast) {
+        (window as any).addToast({
+          message,
+          type: "error",
+        });
+      }
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage("")}
-        />
-      )}
-
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">Login do painel</h1>
-        <p className="mb-6 text-sm text-gray-500">
-          Faça login para acessar a área administrativa.
-        </p>
+    <main className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6">
+          <p className="text-sm font-medium text-blue-600">Área administrativa</p>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">Entrar no dashboard</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Faça login para acessar os assessments e relatórios administrativos.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -86,8 +79,9 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Digite seu usuário"
+              autoComplete="username"
             />
           </div>
 
@@ -99,13 +93,14 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Digite sua senha"
+              autoComplete="current-password"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -113,12 +108,35 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 px-4 py-10">
+          <div className="mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 w-32 rounded bg-gray-200" />
+              <div className="h-8 w-56 rounded bg-gray-200" />
+              <div className="h-4 w-full rounded bg-gray-200" />
+              <div className="h-12 w-full rounded bg-gray-200" />
+              <div className="h-12 w-full rounded bg-gray-200" />
+              <div className="h-12 w-full rounded bg-gray-200" />
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

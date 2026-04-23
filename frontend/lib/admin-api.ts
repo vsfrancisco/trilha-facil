@@ -9,32 +9,43 @@ export async function adminApiFetch(
   path: string,
   options: RequestOptions = {}
 ) {
-  const session = await decrypt(sessionCookie);
-
-  if (!session) {
-    return new Response(
-      JSON.stringify({ detail: "Sessão inválida ou expirada." }),
-      {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const adminApiToken = process.env.ADMIN_API_TOKEN;
-
-  if (!apiBaseUrl || !adminApiToken) {
-    return new Response(
-      JSON.stringify({ detail: "Ambiente do servidor não configurado." }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-
   try {
+    const session = await decrypt(sessionCookie);
+
+    if (!session) {
+      return new Response(
+        JSON.stringify({
+          detail: "Sessão inválida ou expirada.",
+          debug: {
+            hasSessionCookie: !!sessionCookie,
+          },
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const adminApiToken = process.env.ADMIN_API_TOKEN;
+
+    if (!apiBaseUrl || !adminApiToken) {
+      return new Response(
+        JSON.stringify({
+          detail: "Ambiente do servidor não configurado.",
+          debug: {
+            hasApiBaseUrl: !!apiBaseUrl,
+            hasAdminApiToken: !!adminApiToken,
+          },
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const response = await fetch(`${apiBaseUrl}${path}`, {
       method: options.method || "GET",
       headers: {
@@ -53,9 +64,13 @@ export async function adminApiFetch(
           response.headers.get("Content-Type") || "application/json",
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("adminApiFetch error:", error);
+
     return new Response(
-      JSON.stringify({ detail: "Erro ao comunicar com o backend." }),
+      JSON.stringify({
+        detail: "Erro ao comunicar com o backend.",
+      }),
       {
         status: 502,
         headers: { "Content-Type": "application/json" },
