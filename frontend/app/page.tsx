@@ -45,7 +45,8 @@ export default function Home() {
     setError("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assessments?limit=100`, {
+      // 1. Mudança aqui: chama a rota local do Next.js
+      const res = await fetch(`/api/assessments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -56,9 +57,9 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
         console.error("Erro da API:", errorData);
-        throw new Error(errorData.detail || "Falha ao comunicar com a API");
+        throw new Error(errorData.error || errorData.detail || "Falha ao comunicar com a API");
       }
 
       const data: AssessmentResult = await res.json();
