@@ -36,7 +36,6 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const adminToken = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,10 +50,8 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assessments?limit=100`, {
-        headers: {
-          "X-Admin-Token": adminToken || "",
-        },
+      const response = await fetch("/api/admin/assessments?limit=100", {
+        cache: "no-store",
       });
 
       if (!response.ok) {

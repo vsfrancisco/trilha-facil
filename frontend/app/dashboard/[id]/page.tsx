@@ -38,7 +38,6 @@ export default function AssessmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id;
-  const adminToken = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,10 +51,8 @@ export default function AssessmentDetailPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
-          headers: {
-            "X-Admin-Token": adminToken || "",
-          },
+        const response = await fetch(`/api/admin/assessments/${id}`, {
+          cache: "no-store",
         });
 
         if (!response.ok) {
@@ -78,7 +75,7 @@ export default function AssessmentDetailPage() {
     if (id) {
       fetchAssessment();
     }
-  }, [id, adminToken]);
+  }, [id]);
 
   const roleItems = useMemo(() => {
     if (!assessment?.example_roles) return [];
@@ -111,11 +108,8 @@ export default function AssessmentDetailPage() {
     try {
       setDeleting(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assessments?limit=100`, {
+      const response = await fetch(`/api/admin/assessments/${id}`, {
         method: "DELETE",
-        headers: {
-          "X-Admin-Token": adminToken || "",
-        },
       });
 
       if (!response.ok) {
@@ -356,11 +350,8 @@ export default function AssessmentDetailPage() {
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           onConfirm={confirmDelete}
-          loading={deleting}
           title="Excluir assessment"
           message={`Tem certeza que deseja excluir o assessment #${assessment.id}? Esta ação não pode ser desfeita.`}
-          confirmText="Excluir"
-          cancelText="Cancelar"
         />
       </main>
     </>
