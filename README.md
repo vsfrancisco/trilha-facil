@@ -1,339 +1,277 @@
-# 🚀 TrilhaFácil
+# Trilha Fácil
 
-> Plataforma web para diagnóstico inicial de carreira, recomendação de trilhas profissionais e visualização administrativa dos assessments realizados.
 
-<p align="left">
-  <img src="https://img.shields.io/badge/status-MVP%20ativo-2563eb?style=for-the-badge" alt="Status MVP ativo" />
-  <img src="https://img.shields.io/badge/sprint%203-conclu%C3%ADda-16a34a?style=for-the-badge" alt="Sprint 3 concluída" />
-  <img src="https://img.shields.io/badge/frontend-Next.js-111827?style=for-the-badge&logo=nextdotjs" alt="Next.js" />
-  <img src="https://img.shields.io/badge/backend-FastAPI-059669?style=for-the-badge&logo=fastapi" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/database-PostgreSQL-0f766e?style=for-the-badge&logo=postgresql" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/deploy%20db-Neon-0ea5e9?style=for-the-badge" alt="Neon" />
-</p>
 
----
 
-## ✨ Sobre o projeto
 
-O **TrilhaFácil** é um MVP full stack que ajuda usuários a descobrirem possíveis trilhas de carreira com base em um assessment simples.
 
-A aplicação coleta informações do perfil, envia os dados para a API e retorna:
-- trilha recomendada;
-- score de aderência;
-- justificativa;
-- plano inicial de 30 dias;
-- exemplos de vagas relacionadas.
 
-Além da experiência principal do usuário, o projeto inclui um **dashboard administrativo protegido**, com visualização de dados, filtros, gráfico, detalhe por assessment, exclusão de registros e melhorias de UX.
+Plataforma full-stack para gerar **assessments de carreira** e recomendar **trilhas profissionais**, com painel administrativo para consulta, análise e gestão dos diagnósticos em produção.[1][2]
 
----
+## Visão geral
 
-## 🧰 Stack utilizada
+O projeto é composto por dois serviços principais: um frontend em Next.js com App Router e um backend em FastAPI, conectados a um banco PostgreSQL hospedado no Neon e publicados no Render.[1][2]
 
-### Frontend
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Recharts
+A aplicação pública coleta dados do usuário, processa o assessment e apresenta uma recomendação de trilha. A área administrativa oferece autenticação por sessão, dashboard, filtros, exportação e ações de gestão sobre os assessments salvos.[3][4]
 
-### Backend
-- FastAPI
-- SQLModel
-- Uvicorn
-- Pydantic
-- Python Dotenv
+## Demonstração
 
-### Banco de dados
-- PostgreSQL
-- Neon.tech
+### Fluxo principal
+- Usuário preenche o formulário de assessment.
+- O frontend envia os dados ao backend FastAPI.
+- O backend processa a resposta, persiste no PostgreSQL e devolve a recomendação.
+- A área admin autentica o operador e consome rotas protegidas via proxy server-side no Next.js.[2][3][1]
 
----
+### Área administrativa
+- Login com sessão via cookie `httpOnly`.[3]
+- Dashboard com listagem dos assessments.[1]
+- Filtro por trilha e período.[1]
+- Visualização detalhada de cada diagnóstico.[1]
+- Exclusão com confirmação.[1]
+- Exportação CSV e impressão em PDF.[1]
 
-## ✅ Funcionalidades
-
-### Usuário final
-- Formulário de assessment de carreira
-- Envio dos dados para a API pública
-- Resultado com trilha recomendada, score, justificativa, plano e vagas exemplo
-- Exibição formatada na interface
-- Tratamento visual de erro
-
-### Dashboard administrativo
-- Login administrativo
-- Proteção de rota com `proxy.ts`
-- Cookie HTTP-only para sessão
-- Listagem de assessments
-- Visualização detalhada por ID
-- Exclusão de assessment
-- KPIs do dashboard
-- Resumo por trilha
-- Gráfico de barras com Recharts
-- Filtro por trilha
-- Filtro por período
-- Recalculo de KPIs e gráfico com base nos filtros
-- Tabela com scroll horizontal no mobile
-
-### UX / Polimento
-- Modal de confirmação
-- Toast global reutilizável
-- Skeleton loading
-- Melhor responsividade mobile
-- Tipagem refinada em TypeScript
-- Ajustes de compatibilidade frontend/backend
-
-### Backend / Segurança
-- Persistência no PostgreSQL
-- Integração com Neon
-- Endpoint público para criação
-- Endpoints administrativos protegidos
-- Header `X-Admin-Token`
-- `pool_pre_ping=True`
-- `pool_recycle=300`
-
----
-
-## 🗺️ Roadmap
-
-- [x] Sprint 0 — Base do MVP
-- [x] Sprint 1 — Dashboard administrativo
-- [x] Sprint 2 — Proteção do backend
-- [x] Sprint 3 — Polimento UX
-- [ ] Sprint 4 — Exportação e deploy
-- [ ] Sprint 5 — Inteligência da recomendação
-
-### Sprint 4 sugerida
-- [ ] Exportação CSV
-- [ ] Exportação PDF
-- [ ] Deploy integrado frontend + backend
-- [ ] Hardening da autenticação
-- [ ] Melhorias visuais do painel
-
----
-
-## 🖼️ Fluxo do produto
+## Arquitetura
 
 ```text
-Usuário preenche formulário
-        ↓
-Frontend envia POST /api/assessment
-        ↓
-Backend processa e salva no PostgreSQL
-        ↓
-Frontend exibe trilha recomendada
-        ↓
-Admin acessa /login
-        ↓
-Dashboard protegido consome endpoints administrativos
+Usuário
+  |
+  v
+Frontend (Next.js)
+  |- páginas públicas
+  |- login admin
+  |- route handlers /api/admin/*
+  |
+  v
+Backend (FastAPI)
+  |- endpoints públicos
+  |- endpoints administrativos protegidos por token
+  |
+  v
+PostgreSQL (Neon)
 ```
 
----
+O frontend usa Route Handlers como camada intermediária para chamadas administrativas. Isso permite validar a sessão no servidor e enviar o `X-Admin-Token` ao backend sem expor o segredo no navegador.[1][3]
 
-## 📁 Estrutura do projeto
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js, React, TypeScript, Tailwind CSS |
+| Backend | FastAPI, SQLAlchemy/SQLModel, Uvicorn |
+| Banco | PostgreSQL |
+| Infra | Render, Neon |
+
+A separação entre frontend, backend e banco segue um padrão de deploy comum para aplicações SSR com APIs e variáveis de ambiente por serviço.[1][5]
+
+## Estrutura do projeto
 
 ```bash
 trilha-facil/
-├── backend/
-│   ├── auth.py
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── requirements.txt
-│   └── .env
-│
-├── frontend/
-│   ├── proxy.ts
-│   ├── package.json
-│   ├── .env.local
-│   └── src/
-│       ├── app/
-│       │   ├── api/
-│       │   │   ├── login/route.ts
-│       │   │   └── logout/route.ts
-│       │   ├── dashboard/
-│       │   │   ├── [id]/page.tsx
-│       │   │   └── page.tsx
-│       │   ├── login/page.tsx
-│       │   ├── layout.tsx
-│       │   └── page.tsx
-│       └── components/
-│           ├── ConfirmModal.tsx
-│           ├── ToastContainer.tsx
-│           └── TrackBarChart.tsx
-│
-└── README.md
+├─ backend/
+│  ├─ main.py
+│  ├─ database.py
+│  ├─ models.py
+│  ├─ schemas.py
+│  ├─ crud.py
+│  ├─ requirements.txt
+│  └─ .env
+├─ frontend/
+│  ├─ src/
+│  │  ├─ app/
+│  │  ├─ components/
+│  │  └─ lib/
+│  ├─ package.json
+│  └─ .env.local
+└─ README.md
 ```
 
----
-
-## 🔌 Endpoints principais
+## Funcionalidades
 
 ### Público
-```http
-POST /api/assessment
+- Preenchimento do assessment.
+- Geração de recomendação de trilha.
+- Justificativa do resultado.
+- Plano inicial de 30 dias.
+- Exemplos de cargos compatíveis.
+
+### Administrativo
+- Login com sessão.
+- Dashboard com listagem.
+- Filtro por trilha.
+- Filtro por data.
+- Página de detalhes.
+- Exclusão de assessment.
+- Exportação CSV.
+- Exportação PDF via impressão.
+- Feedback visual com toast global.
+
+## Autenticação admin
+
+O login administrativo é processado no frontend por uma rota server-side. Após credenciais válidas, o sistema grava um cookie de sessão `httpOnly`, `sameSite="lax"` e `secure` em produção, prática recomendada para autenticação baseada em sessão.[3]
+
+As rotas administrativas do frontend operam como proxy. O browser acessa `/api/admin/...`, o Next.js valida a sessão e só então repassa a chamada ao FastAPI com o header `X-Admin-Token` no servidor.[1][3]
+
+## Variáveis de ambiente
+
+### Backend (`backend/.env`)
+
+```env
+DATABASE_URL=postgresql://...
+ADMIN_API_TOKEN=seu-token-admin
+FRONTEND_URL=https://seu-frontend.onrender.com
 ```
 
-### Administrativos
-```http
-GET /api/assessments
-GET /api/assessments/{assessment_id}
-DELETE /api/assessments/{assessment_id}
+### Frontend local (`frontend/.env.local`)
+
+```env
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=sua-senha-forte
+AUTH_SECRET=uma-chave-forte
+ADMIN_API_TOKEN=seu-token-admin
+NEXT_PUBLIC_API_BASE_URL=https://seu-backend.onrender.com
 ```
 
-### Health check
-```http
-GET /
-```
+### Regras importantes
+- Variáveis com `NEXT_PUBLIC_` são expostas ao client e devem conter apenas valores públicos.[6][3]
+- Segredos como `AUTH_SECRET`, `ADMIN_PASSWORD` e `ADMIN_API_TOKEN` devem permanecer no servidor.[3][4]
+- No Render, variáveis precisam ser cadastradas no serviço correto e aplicadas por deploy para entrarem em vigor.[5][1]
 
----
+## Executando localmente
 
-## 🔐 Segurança
-
-O acesso administrativo usa duas camadas simples:
-
-### Frontend
-- Login com credenciais em variável de ambiente
-- Sessão com cookie HTTP-only
-- Proteção de rota com `proxy.ts`
-
-### Backend
-- Validação via header:
-```http
-X-Admin-Token: seu-token-admin-super-seguro
-```
-
-Isso separa:
-- a experiência pública de assessment;
-- a experiência administrativa de leitura e exclusão.
-
-> Para produção, o ideal é evoluir para autenticação server-side mais robusta e eliminar exposição direta do token ao cliente.
-
----
-
-## ⚙️ Como rodar localmente
-
-### 1. Clone o projeto
+### 1. Clonar o repositório
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
 cd trilha-facil
 ```
 
-### 2. Rode o backend
+### 2. Backend
 
 ```bash
 cd backend
 python -m venv venv
-.\venv\Scripts\activate
+source venv/bin/activate  # Linux/macOS
+# ou .\venv\Scripts\activate no Windows
 pip install -r requirements.txt
-python -m uvicorn main:app --reload
+uvicorn main:app --reload
 ```
 
-Crie o arquivo `.env` em `backend/`:
+Backend local:
 
-```env
-DATABASE_URL=postgresql://SEU_USER:SUA_SENHA@SEU_HOST/SEU_DB?sslmode=require
-ADMIN_API_TOKEN=seu-token-admin-super-seguro
-```
-
-Backend:
 ```txt
 http://localhost:8000
 ```
 
-Swagger:
-```txt
-http://localhost:8000/docs
-```
+### 3. Frontend
 
-### 3. Rode o frontend
+Em outro terminal:
 
 ```bash
 cd frontend
 npm install
-npm install recharts
 npm run dev
 ```
 
-Crie o arquivo `.env.local` em `frontend/`:
+Frontend local:
 
-```env
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=123456
-NEXT_PUBLIC_ADMIN_API_TOKEN=seu-token-admin-super-seguro
-```
-
-Frontend:
 ```txt
 http://localhost:3000
 ```
 
----
+## Deploy no Render
 
-## 🧪 Fluxos principais
+### Backend
+- **Type**: Web Service
+- **Root Directory**: `backend`
+- **Build Command**:
 
-### Usuário final
-1. Preenche o formulário
-2. Envia dados para `POST /api/assessment`
-3. Recebe recomendação de trilha
-4. Visualiza plano e vagas exemplo
+```bash
+pip install -r requirements.txt
+```
 
-### Administrador
-1. Faz login em `/login`
-2. Entra no dashboard protegido
-3. Filtra dados por trilha e período
-4. Visualiza detalhes
-5. Exclui registros quando necessário
+- **Start Command**:
 
----
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
 
-<details>
-  <summary><strong>📌 Observações técnicas</strong></summary>
+### Frontend
+- **Type**: Web Service
+- **Root Directory**: `frontend`
+- **Build Command**:
 
-- O projeto usa frontend em `http://localhost:3000` e backend em `http://localhost:8000`.
-- O backend está com CORS liberado para ambiente local.
-- O Neon pode encerrar conexões ociosas; por isso o engine usa `pool_pre_ping` e `pool_recycle`.
-- O login atual é simples e adequado para MVP interno.
-- O token administrativo também é simples e voltado ao estágio atual do projeto.
-- `example_roles` e `plan_30_days` são tratados no frontend para compatibilidade com o formato atual retornado pela API.
+```bash
+npm install && npm run build
+```
 
-</details>
+- **Start Command**:
 
-<details>
-  <summary><strong>📦 Modelo de dados</strong></summary>
+```bash
+npm run start
+```
 
-Cada assessment salvo contém:
-- idade
-- escolaridade
-- área atual
-- pretensão salarial
-- interesses
-- trilha recomendada
-- score de match
-- justificativa
-- plano de 30 dias
-- cargos exemplo
-- data de criação
+O Render oferece suporte a aplicações Next.js com SSR e API routes, mas exige configuração explícita de environment variables por serviço.[1][5]
 
-</details>
+## Banco de dados
 
----
+O backend usa PostgreSQL. Se a engine estiver configurada com o dialeto `psycopg2`, a dependência deve ser compatível com esse driver, como `psycopg2-binary`, para evitar erro de import em produção.[2]
 
-## 📊 Status do projeto
+## Rotas principais
 
-| Sprint | Status |
-|---|---|
-| Sprint 0 — Base do MVP | ✅ Concluída |
-| Sprint 1 — Dashboard administrativo | ✅ Concluída |
-| Sprint 2 — Proteção do backend | ✅ Concluída |
-| Sprint 3 — Polimento UX | ✅ Concluída |
-| Sprint 4 — Exportação e deploy | ⏳ Próxima |
+### Backend público
+- `POST /api/assessment`
+- `GET /health` ou `/`
 
----
+### Backend admin
+- `GET /api/assessments`
+- `GET /api/assessments/{id}`
+- `DELETE /api/assessments/{id}`
 
-## 👨‍💻 Autor
+### Frontend admin
+- `POST /api/login`
+- `POST /api/logout`
+- `GET /api/admin/assessments`
+- `GET /api/admin/assessments/{id}`
+- `DELETE /api/admin/assessments/{id}`
 
-Desenvolvido por **Victor Francisco**.
+## Smoke test de produção
 
----
+Após cada deploy, validar:
+
+1. Abrir `/login`.
+2. Fazer login.
+3. Confirmar redirect para `/dashboard`.
+4. Validar carregamento da lista.
+5. Abrir um assessment.
+6. Excluir um assessment.
+7. Exportar CSV.
+8. Exportar PDF.
+9. Fazer logout.
+10. Confirmar que `/dashboard` volta a exigir login.[1][5]
+
+## Segurança
+
+- Sessão administrativa em cookie `httpOnly`.[3]
+- `sameSite="lax"` e `secure` em produção.[3]
+- Token administrativo mantido apenas no servidor.[6][3]
+- CORS restrito à origem do frontend no backend.[2]
+- Segredos fora do código-fonte e centralizados em environment variables.[5][4]
+
+## Melhorias futuras
+
+- Paginação no dashboard.
+- Busca textual por usuário, trilha ou área.
+- Métricas agregadas por período.
+- Observabilidade e logs estruturados.
+- CI/CD com validação de build.
+- Centralização de settings com Pydantic Settings no backend.[4][7]
+
+## Status atual
+
+Projeto publicado em produção com frontend no Render, backend FastAPI no Render, banco PostgreSQL no Neon, autenticação administrativa funcional e smoke tests aprovados.[1][5]
+
+## Autor
+
+**Victor Francisco**
+
+Desenvolvedor full-stack focado em aplicações web, APIs e soluções orientadas a produto.
