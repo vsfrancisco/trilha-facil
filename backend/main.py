@@ -4,7 +4,11 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime, timezone
 
 from database import engine
 from models import Assessment
@@ -12,6 +16,46 @@ from schemas import AssessmentCreate, AssessmentRead
 from auth import verify_admin_token
 
 app = FastAPI(title="TrilhaFácil API")
+
+@app.get("/health")
+def health_check():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ok",
+                "api": "up",
+                "database": "up",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+    except SQLAlchemyError as e:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "api": "up",
+                "database": "down",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "detail": str(e.__class__.__name__),
+            },
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "api": "up",
+                "database": "down",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "detail": str(e.__class__.__name__),
+            },
+        )
 
 app.add_middleware(
     CORSMiddleware,
@@ -122,6 +166,3 @@ def delete_assessment(
 
         return {"message": "Assessment excluído com sucesso"}
     
-@app.get("/health")
-def health():
-    return {"ok": True}
