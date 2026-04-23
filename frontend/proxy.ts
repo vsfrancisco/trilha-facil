@@ -1,23 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt, encrypt } from "@/lib/session";
 
-export function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const authCookie = request.cookies.get("admin_auth")?.value;
+const protectedRoutes = ["/dashboard"];
 
-  const isDashboardRoute = pathname.startsWith("/dashboard");
-  const isLoginRoute = pathname.startsWith("/login");
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
-  if (isDashboardRoute && authCookie !== "true") {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("reason", "expired");
-    return NextResponse.redirect(loginUrl);
+  const cookie = request.cookies.get("session")?.value;
+  const session = await decrypt(cookie);
+
+  if (isProtectedRoute && !session) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (isLoginRoute && authCookie === "true") {
+  if (pathname.startsWith("/login") && session) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  if (session) {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
+
+    const refreshedSession = await encrypt({
+      username: session.username,
+      role: "admin",
+      expiresAt,
+    });
+
+    response.cookies.set("session", refreshedSession, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: new Date(expiresAt * 1000),
+      path: "/",
+    });
+  }
+
+  return response;
 }
 
 export const config = {
