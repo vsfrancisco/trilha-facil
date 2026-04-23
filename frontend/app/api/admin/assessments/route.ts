@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
 
     const search = request.nextUrl.searchParams.toString();
     const url = search
-      ? `${backendUrl}/api/assessments?${search}`
-      : `${backendUrl}/api/assessments`;
+      ? `${backendUrl}/assessments?${search}`
+      : `${backendUrl}/assessments`;
 
     const response = await fetch(url, {
       method: "GET",

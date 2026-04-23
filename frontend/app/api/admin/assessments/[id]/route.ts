@@ -60,7 +60,7 @@ export async function DELETE(
       );
     }
 
-    const response = await fetch(`${backendUrl}/api/assessments/${id}`, {
+    const response = await fetch(`${backendUrl}/assessments/${id}`, {
       method: "DELETE",
       headers: {
         "X-Admin-Token": session,
