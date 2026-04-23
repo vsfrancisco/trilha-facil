@@ -1,12 +1,14 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = process.env.AUTH_SECRET;
+function getSecretKey() {
+  const secret = process.env.AUTH_SECRET;
 
-if (!secret) {
-  throw new Error("AUTH_SECRET não está configurado.");
+  if (!secret) {
+    throw new Error("AUTH_SECRET não está configurado.");
+  }
+
+  return new TextEncoder().encode(secret);
 }
-
-const encodedKey = new TextEncoder().encode(secret);
 
 export type SessionPayload = {
   username: string;
@@ -15,6 +17,8 @@ export type SessionPayload = {
 };
 
 export async function encrypt(payload: SessionPayload) {
+  const encodedKey = getSecretKey();
+
   return new SignJWT({
     username: payload.username,
     role: payload.role,
@@ -29,6 +33,8 @@ export async function encrypt(payload: SessionPayload) {
 export async function decrypt(session: string | undefined = "") {
   try {
     if (!session) return null;
+
+    const encodedKey = getSecretKey();
 
     const { payload } = await jwtVerify(session, encodedKey, {
       algorithms: ["HS256"],

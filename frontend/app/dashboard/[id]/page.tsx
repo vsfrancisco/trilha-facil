@@ -111,7 +111,7 @@ export default function AssessmentDetailPage() {
     try {
       setDeleting(true);
 
-      const response = await fetch(`http://localhost:8000/api/assessments/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assessments?limit=100`, {
         method: "DELETE",
         headers: {
           "X-Admin-Token": adminToken || "",

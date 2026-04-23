@@ -121,3 +121,7 @@ def delete_assessment(
         session.commit()
 
         return {"message": "Assessment excluído com sucesso"}
+    
+@app.get("/health")
+def health():
+    return {"ok": True}

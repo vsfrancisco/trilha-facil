@@ -51,7 +51,7 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:8000/api/assessments?limit=100", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assessments?limit=100`, {
         headers: {
           "X-Admin-Token": adminToken || "",
         },
