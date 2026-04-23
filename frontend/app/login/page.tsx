@@ -1,10 +1,9 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [username, setUsername] = useState("");
@@ -16,6 +15,9 @@ function LoginContent() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (loading) return;
+
     setLoading(true);
     setError("");
 
@@ -25,14 +27,24 @@ function LoginContent() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        credentials: "same-origin",
+        body: JSON.stringify({
+          username,
+          password,
+          redirectTo,
+        }),
       });
 
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.detail || "Falha no login.");
+        throw new Error(data?.error || data?.detail || "Falha no login.");
       }
+
+      const nextPath =
+        typeof data?.redirectTo === "string" && data.redirectTo.startsWith("/")
+          ? data.redirectTo
+          : "/dashboard";
 
       if ((window as any).addToast) {
         (window as any).addToast({
@@ -41,11 +53,15 @@ function LoginContent() {
         });
       }
 
-      router.push(redirectTo);
-      router.refresh();
+      setTimeout(() => {
+        window.location.assign(nextPath);
+      }, 150);
     } catch (err) {
       console.error(err);
-      const message = err instanceof Error ? err.message : "Erro ao fazer login.";
+
+      const message =
+        err instanceof Error ? err.message : "Erro ao fazer login.";
+
       setError(message);
 
       if ((window as any).addToast) {
@@ -54,7 +70,7 @@ function LoginContent() {
           type: "error",
         });
       }
-    } finally {
+
       setLoading(false);
     }
   }
@@ -64,7 +80,9 @@ function LoginContent() {
       <div className="mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6">
           <p className="text-sm font-medium text-blue-600">Área administrativa</p>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">Entrar no dashboard</h1>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">
+            Entrar no dashboard
+          </h1>
           <p className="mt-2 text-sm text-gray-500">
             Faça login para acessar os assessments e relatórios administrativos.
           </p>

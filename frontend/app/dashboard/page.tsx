@@ -24,7 +24,10 @@ function DashboardSkeleton() {
     <div className="animate-pulse space-y-4 sm:space-y-6">
       <div className="grid gap-3 sm:gap-4 md:grid-cols-4">
         {[1, 2, 3, 4].map((item: number) => (
-          <div key={item} className="h-24 rounded-xl border border-gray-200 bg-white sm:h-28" />
+          <div
+            key={item}
+            className="h-24 rounded-xl border border-gray-200 bg-white sm:h-28"
+          />
         ))}
       </div>
 
@@ -52,11 +55,19 @@ export default function DashboardPage() {
 
       const response = await fetch("/api/admin/assessments?limit=100", {
         cache: "no-store",
+        credentials: "same-origin",
       });
+
+      if (response.status === 401) {
+        window.location.assign("/login?redirect=/dashboard");
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || "Falha ao buscar assessments");
+        throw new Error(
+          errorData?.error || errorData?.detail || "Falha ao buscar assessments"
+        );
       }
 
       const data: Assessment[] = await response.json();
@@ -83,6 +94,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch("/api/logout", {
         method: "POST",
+        credentials: "same-origin",
       });
 
       if (!response.ok) {
@@ -96,8 +108,7 @@ export default function DashboardPage() {
         });
       }
 
-      router.push("/login");
-      router.refresh();
+      window.location.assign("/login");
     } catch (err) {
       console.error(err);
 
@@ -231,7 +242,8 @@ export default function DashboardPage() {
     const summary: Record<string, number> = {};
 
     filteredAssessments.forEach((item: Assessment) => {
-      summary[item.recommended_track] = (summary[item.recommended_track] || 0) + 1;
+      summary[item.recommended_track] =
+        (summary[item.recommended_track] || 0) + 1;
     });
 
     return Object.entries(summary)
