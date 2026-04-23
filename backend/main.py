@@ -1,215 +1,206 @@
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlmodel import Session, select
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, timezone
-
-from database import engine
-from models import Assessment
-from schemas import AssessmentCreate, AssessmentRead
-from auth import verify_admin_token
-
 import json
 import logging
 import time
 import uuid
+from datetime import datetime, timezone
 
-logging.basicConfig(level=logging.INFO, format="%(message)s")
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlmodel import Session, SQLModel, select
+
+from auth import verify_admin_token
+from database import engine
+from models import Assessment
+from schemas import AssessmentCreate, AssessmentRead
+from settings import settings
+
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(message)s",
+)
 logger = logging.getLogger("app")
 
-app = FastAPI(title="TrilhaFácil API")
+app = FastAPI(title=settings.app_name)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.middleware("http")
-async def logging_middleware(request: Request, call_next):
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())
     start_time = time.perf_counter()
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-    client_ip = request.client.host if request.client else "unknown"
-
-    request.state.request_id = request_id
-
-    logger.info(json.dumps({
-        "event": "request_started",
-        "request_id": request_id,
-        "method": request.method,
-        "path": request.url.path,
-        "client_ip": client_ip,
-    }))
 
     try:
         response = await call_next(request)
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        response.headers["X-Request-ID"] = request_id
-
         logger.info(json.dumps({
-            "event": "request_completed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": "INFO",
             "request_id": request_id,
             "method": request.method,
             "path": request.url.path,
             "status_code": response.status_code,
             "duration_ms": duration_ms,
-            "client_ip": client_ip,
+            "client": request.client.host if request.client else None,
         }))
 
+        response.headers["X-Request-ID"] = request_id
         return response
 
-    except Exception as e:
+    except Exception as exc:
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
         logger.exception(json.dumps({
-            "event": "request_failed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": "ERROR",
             "request_id": request_id,
             "method": request.method,
             "path": request.url.path,
             "duration_ms": duration_ms,
-            "client_ip": client_ip,
-            "error_type": e.__class__.__name__,
-            "error": str(e),
+            "error": str(exc),
         }))
 
-        raise
-
-@app.get("/health")
-def health_check():
-    try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-
         return JSONResponse(
-            status_code=200,
+            status_code=500,
             content={
-                "status": "ok",
-                "api": "up",
-                "database": "up",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "detail": "Erro interno do servidor",
+                "request_id": request_id,
             },
-        )
-
-    except SQLAlchemyError as e:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "error",
-                "api": "up",
-                "database": "down",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "detail": str(e.__class__.__name__),
-            },
-        )
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "error",
-                "api": "up",
-                "database": "down",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "detail": str(e.__class__.__name__),
-            },
+            headers={"X-Request-ID": request_id},
         )
 
 
-def create_db_and_tables():
-    Assessment.metadata.create_all(engine)
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
+    SQLModel.metadata.create_all(engine)
+
+    logger.info(json.dumps({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "level": "INFO",
+        "message": "Application startup complete",
+        "environment": settings.environment,
+        "app_name": settings.app_name,
+    }))
 
 
 @app.get("/")
-def read_root():
-    return {"message": "API do TrilhaFácil está online"}
+def root():
+    return {
+        "message": f"{settings.app_name} online",
+        "environment": settings.environment,
+    }
 
 
-@app.post("/api/assessment", response_model=AssessmentRead)
-def create_assessment(payload: AssessmentCreate):
-    recommended_track = "Dados"
-    match_score = 85
-    reason = (
-        f"Com base nos interesses informados ({payload.interests}) e na sua área atual "
-        f"({payload.current_field}), a trilha de {recommended_track} apresentou boa aderência."
+@app.get("/health")
+def health():
+    db_ok = False
+
+    try:
+        with Session(engine) as session:
+            session.exec(text("SELECT 1"))
+        db_ok = True
+    except SQLAlchemyError:
+        db_ok = False
+    except Exception:
+        db_ok = False
+
+    status_text = "ok" if db_ok else "degraded"
+    status_code = 200 if db_ok else 503
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": status_text,
+            "app": settings.app_name,
+            "environment": settings.environment,
+            "database": "connected" if db_ok else "disconnected",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
     )
-    plan_30_days = (
-        "Semana 1: revisar fundamentos | "
-        "Semana 2: estudar ferramentas da trilha | "
-        "Semana 3: criar projeto prático | "
-        "Semana 4: atualizar currículo e aplicar para vagas"
-    )
-    example_roles = "Analista de Dados Júnior, BI Júnior, Assistente de Dados"
-
-    assessment = Assessment(
-        age=payload.age,
-        education=payload.education,
-        current_field=payload.current_field,
-        target_salary=payload.target_salary,
-        interests=payload.interests,
-        recommended_track=recommended_track,
-        match_score=match_score,
-        reason=reason,
-        plan_30_days=plan_30_days,
-        example_roles=example_roles,
-    )
-
-    with Session(engine) as session:
-        session.add(assessment)
-        session.commit()
-        session.refresh(assessment)
-        return assessment
 
 
-@app.get("/api/assessments", response_model=list[AssessmentRead])
-def list_assessments(
-    limit: int = 50,
-    offset: int = 0,
-    _: str = Depends(verify_admin_token)
-):
-    with Session(engine) as session:
-        statement = (
-            select(Assessment)
-            .order_by(Assessment.id.desc())
-            .offset(offset)
-            .limit(limit)
+@app.get("/ready")
+def ready():
+    try:
+        with Session(engine) as session:
+            session.exec(text("SELECT 1"))
+
+        return {
+            "status": "ready",
+            "app": settings.app_name,
+            "environment": settings.environment,
+        }
+    except Exception:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "app": settings.app_name,
+                "environment": settings.environment,
+            },
         )
-        results = session.exec(statement).all()
-        return results
 
 
-@app.get("/api/assessments/{assessment_id}", response_model=AssessmentRead)
+@app.post("/assessments", response_model=AssessmentRead)
+def create_assessment(
+    payload: AssessmentCreate,
+    session: Session = Depends(get_session),
+):
+    assessment = Assessment.model_validate(payload)
+    session.add(assessment)
+    session.commit()
+    session.refresh(assessment)
+    return assessment
+
+
+@app.get("/assessments", response_model=list[AssessmentRead])
+def list_assessments(session: Session = Depends(get_session)):
+    items = session.exec(select(Assessment).order_by(Assessment.id.desc())).all()
+    return items
+
+
+@app.get("/assessments/{assessment_id}", response_model=AssessmentRead)
 def get_assessment(
     assessment_id: int,
-    _: str = Depends(verify_admin_token)
+    session: Session = Depends(get_session),
 ):
-    with Session(engine) as session:
-        assessment = session.get(Assessment, assessment_id)
+    assessment = session.get(Assessment, assessment_id)
 
-        if not assessment:
-            raise HTTPException(status_code=404, detail="Assessment não encontrado")
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment não encontrado")
 
-        return assessment
+    return assessment
 
 
-@app.delete("/api/assessments/{assessment_id}")
+@app.delete("/assessments/{assessment_id}")
 def delete_assessment(
     assessment_id: int,
-    _: str = Depends(verify_admin_token)
+    session: Session = Depends(get_session),
+    _: str = Depends(verify_admin_token),
 ):
-    with Session(engine) as session:
-        assessment = session.get(Assessment, assessment_id)
+    assessment = session.get(Assessment, assessment_id)
 
-        if not assessment:
-            raise HTTPException(status_code=404, detail="Assessment não encontrado")
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment não encontrado")
 
-        session.delete(assessment)
-        session.commit()
+    session.delete(assessment)
+    session.commit()
 
-        return {"message": "Assessment excluído com sucesso"}
-    
+    return {"ok": True, "deleted_id": assessment_id}

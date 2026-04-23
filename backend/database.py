@@ -1,31 +1,14 @@
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import create_engine
+from settings import settings
 
-BASE_DIR = Path(__file__).resolve().parent
-ENV_PATH = BASE_DIR / ".env"
+database_url = settings.database_url
 
-load_dotenv(dotenv_path=ENV_PATH, override=True)
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise ValueError(f"DATABASE_URL não encontrada no arquivo .env em: {ENV_PATH}")
+connect_args = {}
+if database_url.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,      # Testa conexão antes de usar
-    pool_recycle=300,        # Recicla conexões a cada 5min
-    pool_timeout=20,
-    pool_size=5,
-    max_overflow=10,
-    echo=False
+    database_url,
+    echo=False,
+    connect_args=connect_args,
 )
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-def get_session():
-    with Session(engine) as session:
-        yield session

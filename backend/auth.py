@@ -1,28 +1,20 @@
-import os
-from fastapi import HTTPException, Security, status
-from fastapi.security import APIKeyHeader
+from fastapi import Cookie, HTTPException, status
+from settings import settings
 
-admin_token_header = APIKeyHeader(name="X-Admin-Token", auto_error=False)
+ADMIN_TOKEN = settings.admin_token
 
-def verify_admin_token(api_key: str = Security(admin_token_header)):
-    expected_token = os.getenv("ADMIN_API_TOKEN")
 
-    if not expected_token:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ADMIN_API_TOKEN não configurado no servidor"
-        )
-
-    if not api_key:
+def verify_admin_token(admin_token: str | None = Cookie(default=None)) -> str:
+    if not admin_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token administrativo ausente"
+            detail="Não autenticado",
         )
 
-    if api_key != expected_token:
+    if admin_token != ADMIN_TOKEN:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token administrativo inválido"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Token inválido",
         )
 
-    return api_key
+    return admin_token
