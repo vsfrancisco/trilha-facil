@@ -19,6 +19,8 @@ type Assessment = {
   created_at: string;
 };
 
+const API_BASE_URL = "http://localhost:8000";
+
 function DetailSkeleton() {
   return (
     <div className="animate-pulse space-y-4 sm:space-y-6">
@@ -39,7 +41,6 @@ function DetailSkeleton() {
 export default function AssessmentDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-
   const id = params?.id;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -55,49 +56,34 @@ export default function AssessmentDetailPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`/api/admin/assessments?limit=100`, {
+      const response = await fetch(`${API_BASE_URL}/assessments/${id}`, {
+        method: "GET",
         cache: "no-store",
-        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
       });
-
-      if (response.status === 401) {
-        window.location.assign(`/login?redirect=/dashboard/${id}`);
-        return;
-      }
 
       const data = await response.json().catch(() => null);
 
-      if (!response.ok) {
-        throw new Error(
-          data?.error || data?.detail || "Falha ao carregar assessment."
-        );
-      }
-
-      const found = Array.isArray(data)
-        ? data.find((item: Assessment) => String(item.id) === String(id))
-        : null;
-
-      if (!found) {
-        setAssessment(null);
-        setError("Assessment não encontrado.");
+      if (response.status === 401) {
+        router.push(`/login?redirect=/dashboard/${id}`);
         return;
       }
 
-      setAssessment(found);
+      if (!response.ok) {
+        throw new Error(
+          data?.detail || data?.error || "Falha ao carregar assessment."
+        );
+      }
+
+      setAssessment(data);
     } catch (err) {
       console.error(err);
-
       const message =
         err instanceof Error ? err.message : "Erro ao carregar assessment.";
-
+      setAssessment(null);
       setError(message);
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message,
-          type: "error",
-        });
-      }
     } finally {
       setLoading(false);
     }
@@ -119,45 +105,27 @@ export default function AssessmentDetailPage() {
     try {
       setIsDeleting(true);
 
-      const response = await fetch(`/api/admin/assessments/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/assessments/${id}`, {
         method: "DELETE",
-        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
       });
 
       const data = await response.json().catch(() => null);
 
-      if (response.status === 401) {
-        window.location.assign(`/login?redirect=/dashboard/${id}`);
-        return;
-      }
-
       if (!response.ok) {
         throw new Error(
-          data?.error || data?.detail || "Falha ao excluir assessment."
+          data?.detail || data?.error || "Falha ao excluir assessment."
         );
       }
 
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: "Assessment excluído com sucesso.",
-          type: "success",
-        });
-      }
-
-      window.location.assign("/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       console.error(err);
-
       const message =
         err instanceof Error ? err.message : "Erro ao excluir assessment.";
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message,
-          type: "error",
-        });
-      }
-
+      setError(message);
       setIsDeleting(false);
       setIsConfirmOpen(false);
     }
@@ -165,11 +133,11 @@ export default function AssessmentDetailPage() {
 
   useEffect(() => {
     fetchAssessment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const planItems = useMemo(() => {
     if (!assessment?.plan_30_days) return [];
-
     return assessment.plan_30_days
       .split("|")
       .map((item) => item.trim())
@@ -178,7 +146,6 @@ export default function AssessmentDetailPage() {
 
   const exampleRoles = useMemo(() => {
     if (!assessment?.example_roles) return [];
-
     return assessment.example_roles
       .split(",")
       .map((item) => item.trim())
@@ -207,7 +174,7 @@ export default function AssessmentDetailPage() {
           </p>
           <div className="mt-6">
             <button
-              onClick={() => window.location.assign("/dashboard")}
+              onClick={() => router.push("/dashboard")}
               className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Voltar ao dashboard
@@ -231,8 +198,7 @@ export default function AssessmentDetailPage() {
                 Assessment #{assessment.id}
               </h1>
               <p className="mt-2 text-sm text-gray-500">
-                Criado em{" "}
-                {new Date(assessment.created_at).toLocaleString("pt-BR")}
+                Criado em {new Date(assessment.created_at).toLocaleString("pt-BR")}
               </p>
             </div>
 
@@ -293,9 +259,7 @@ export default function AssessmentDetailPage() {
 
           <div className="mb-6 grid gap-6 lg:grid-cols-2">
             <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold text-gray-900">
-                Perfil informado
-              </h2>
+              <h2 className="text-lg font-bold text-gray-900">Perfil informado</h2>
               <div className="mt-4 space-y-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -308,9 +272,7 @@ export default function AssessmentDetailPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Escolaridade
                   </p>
-                  <p className="mt-1 text-sm text-gray-800">
-                    {assessment.education}
-                  </p>
+                  <p className="mt-1 text-sm text-gray-800">{assessment.education}</p>
                 </div>
 
                 <div>
@@ -326,9 +288,7 @@ export default function AssessmentDetailPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Interesses
                   </p>
-                  <p className="mt-1 text-sm text-gray-800">
-                    {assessment.interests}
-                  </p>
+                  <p className="mt-1 text-sm text-gray-800">{assessment.interests}</p>
                 </div>
               </div>
             </section>
@@ -341,8 +301,7 @@ export default function AssessmentDetailPage() {
                     Recomendação principal
                   </p>
                   <p className="mt-1 text-sm text-gray-800">
-                    Trilha recomendada:{" "}
-                    <strong>{assessment.recommended_track}</strong>
+                    Trilha recomendada: <strong>{assessment.recommended_track}</strong>
                   </p>
                 </div>
 
@@ -374,9 +333,7 @@ export default function AssessmentDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-gray-500">
-                  Nenhum plano registrado.
-                </p>
+                <p className="mt-4 text-sm text-gray-500">Nenhum plano registrado.</p>
               )}
             </section>
 

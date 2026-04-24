@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import TrackBarChart from "@/components/TrackBarChart";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
 
 type Assessment = {
@@ -20,19 +19,34 @@ type Assessment = {
   created_at: string;
 };
 
+type PaginatedResponse = {
+  items: Assessment[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
+
+type SortField =
+  | "created_at"
+  | "match_score"
+  | "target_salary"
+  | "recommended_track"
+  | "id";
+
+type SortOrder = "asc" | "desc";
+
 function DashboardSkeleton() {
   return (
     <div className="animate-pulse space-y-4 sm:space-y-6">
       <div className="grid gap-3 sm:gap-4 md:grid-cols-4">
-        {[1, 2, 3, 4].map((item: number) => (
+        {[1, 2, 3, 4].map((item) => (
           <div
             key={item}
             className="h-24 rounded-xl border border-gray-200 bg-white sm:h-28"
           />
         ))}
       </div>
-
-      <div className="h-64 rounded-xl border border-gray-200 bg-white sm:h-72" />
       <div className="h-80 rounded-xl border border-gray-200 bg-white sm:h-96" />
     </div>
   );
@@ -40,69 +54,96 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const page = Number(searchParams.get("page") || "1");
+  const pageSize = Number(searchParams.get("page_size") || "10");
+  const search = searchParams.get("search") || "";
+  const track = searchParams.get("track") || "";
+  const startDate = searchParams.get("start_date") || "";
+  const endDate = searchParams.get("end_date") || "";
+  const sortBy = (searchParams.get("sort_by") || "created_at") as SortField;
+  const sortOrder = (searchParams.get("sort_order") || "desc") as SortOrder;
+
+  const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isForbidden, setIsForbidden] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [filterTrack, setFilterTrack] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+  function updateParams(updates: Record<string, string | undefined>) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value.trim() !== "") {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function buildApiUrl() {
+    const params = new URLSearchParams();
+
+    params.set("page", String(page));
+    params.set("page_size", String(pageSize));
+    if (search) params.set("search", search);
+    if (track) params.set("track", track);
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+    params.set("sort_by", sortBy);
+    params.set("sort_order", sortOrder);
+
+    return `${API_BASE_URL}/assessments?${params.toString()}`;
+  }
+
   async function fetchAssessments(mode: "initial" | "refresh" = "initial") {
     try {
-      if (mode === "initial") {
-        setLoading(true);
-      } else {
-        setIsRefreshing(true);
-      }
+      if (mode === "initial") setLoading(true);
+      else setIsRefreshing(true);
 
       setError("");
 
-      const response = await fetch("/api/admin/assessments?limit=100", {
+      const response = await fetch(buildApiUrl(), {
+        method: "GET",
         cache: "no-store",
-        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
       });
 
-      if (response.status === 401) {
-        window.location.assign("/login?redirect=/dashboard");
-        return;
-      }
-
-      if (response.status === 403) {
-        setIsForbidden(true);
-        return;
-      }
-
-      const data = await response.json().catch(() => null);
+      const json = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(
-          data?.error || data?.detail || "Falha ao buscar assessments."
-        );
+        throw new Error(json?.detail || json?.error || "Falha ao carregar assessments.");
       }
 
-      setAssessments(Array.isArray(data) ? data : []);
+      const normalized: PaginatedResponse = Array.isArray(json)
+        ? {
+            items: json,
+            total: json.length,
+            page: 1,
+            page_size: json.length || 10,
+            total_pages: 1,
+          }
+        : json;
+
+      setData(normalized);
     } catch (err) {
       console.error(err);
-      const message =
-        err instanceof Error ? err.message : "Erro ao carregar dashboard.";
-
-      setError(message);
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message,
-          type: "error",
-        });
-      }
+      setError(
+        err instanceof Error ? err.message : "Erro inesperado ao carregar dashboard."
+      );
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -111,100 +152,14 @@ export default function DashboardPage() {
 
   async function handleLogout() {
     if (isLoggingOut) return;
-
     try {
       setIsLoggingOut(true);
-
-      const response = await fetch("/api/logout", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao realizar logout");
-      }
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: "Logout realizado com sucesso.",
-          type: "success",
-        });
-      }
-
-      window.location.assign("/login");
+      router.push("/login");
     } catch (err) {
       console.error(err);
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: "Erro ao realizar logout.",
-          type: "error",
-        });
-      }
-
       setIsLoggingOut(false);
+      setError("Erro ao realizar logout.");
     }
-  }
-
-  function clearFilters() {
-    setFilterTrack("");
-    setStartDate("");
-    setEndDate("");
-
-    if ((window as any).addToast) {
-      (window as any).addToast({
-        message: "Filtros limpos.",
-        type: "info",
-      });
-    }
-  }
-
-  function toggleSelected(id: number) {
-    setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
-    );
-  }
-
-  function clearSelection() {
-    setSelectedIds([]);
-  }
-
-  const filteredAssessments = useMemo(() => {
-    return assessments.filter((item: Assessment) => {
-      const matchesTrack = item.recommended_track
-        .toLowerCase()
-        .includes(filterTrack.toLowerCase());
-
-      const createdAt = new Date(item.created_at);
-
-      const matchesStart =
-        !startDate || createdAt >= new Date(`${startDate}T00:00:00`);
-
-      const matchesEnd =
-        !endDate || createdAt <= new Date(`${endDate}T23:59:59`);
-
-      return matchesTrack && matchesStart && matchesEnd;
-    });
-  }, [assessments, filterTrack, startDate, endDate]);
-
-  const visibleIds = filteredAssessments.map((item) => item.id);
-  const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-
-  function toggleSelectAllVisible() {
-    if (allVisibleSelected) {
-      setSelectedIds((current) =>
-        current.filter((id) => !visibleIds.includes(id))
-      );
-      return;
-    }
-
-    setSelectedIds((current) => {
-      const merged = new Set([...current, ...visibleIds]);
-      return Array.from(merged);
-    });
   }
 
   async function confirmBulkDelete() {
@@ -215,9 +170,11 @@ export default function DashboardPage() {
 
       const results = await Promise.allSettled(
         selectedIds.map((id) =>
-          fetch(`/api/admin/assessments/${id}`, {
+          fetch(`${API_BASE_URL}/assessments/${id}`, {
             method: "DELETE",
-            credentials: "same-origin",
+            headers: {
+              Accept: "application/json",
+            },
           })
         )
       );
@@ -228,19 +185,8 @@ export default function DashboardPage() {
           (result.status === "fulfilled" && !result.value.ok)
       ).length;
 
-      const successCount = selectedIds.length - failed;
-
       if (failed > 0) {
-        throw new Error(
-          `${successCount} assessments excluídos, ${failed} falharam.`
-        );
-      }
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: `${successCount} assessments excluídos com sucesso.`,
-          type: "success",
-        });
+        throw new Error("Alguns assessments não puderam ser excluídos.");
       }
 
       setSelectedIds([]);
@@ -248,37 +194,94 @@ export default function DashboardPage() {
       await fetchAssessments("refresh");
     } catch (err) {
       console.error(err);
-
-      const message =
-        err instanceof Error ? err.message : "Erro ao excluir assessments.";
-
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message,
-          type: "error",
-        });
-      }
+      setError(err instanceof Error ? err.message : "Erro ao excluir assessments.");
     } finally {
       setIsBulkDeleting(false);
     }
   }
 
-  function escapeCsvValue(value: string | number) {
-    const stringValue = String(value ?? "");
-    const escaped = stringValue.replace(/"/g, '""');
-    return `"${escaped}"`;
+  function clearFilters() {
+    updateParams({
+      search: "",
+      track: "",
+      start_date: "",
+      end_date: "",
+      page: "1",
+    });
   }
 
-  function handleExportCsv() {
-    if (filteredAssessments.length === 0) {
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: `Nenhum dado para exportar com os filtros atuais. ${assessments.length} assessments totais disponíveis.`,
-          type: "info",
-        });
-      }
+  function updateSort(field: SortField) {
+    const nextOrder = sortBy === field && sortOrder === "asc" ? "desc" : "asc";
+    updateParams({ sort_by: field, sort_order: nextOrder, page: "1" });
+  }
+
+  function setPage(nextPage: number) {
+    updateParams({ page: String(nextPage) });
+  }
+
+  function setPageSize(nextSize: string) {
+    updateParams({ page_size: nextSize, page: "1" });
+  }
+
+  function toggleSelected(id: number) {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }
+
+  const assessments = data?.items || [];
+  const total = data?.total || 0;
+  const totalPages = data?.total_pages || 0;
+
+  const allVisibleSelected =
+    assessments.length > 0 &&
+    assessments.every((item) => selectedIds.includes(item.id));
+
+  function toggleSelectAllVisible() {
+    if (allVisibleSelected) {
+      setSelectedIds((current) =>
+        current.filter((id) => !assessments.some((item) => item.id === id))
+      );
       return;
     }
+
+    setSelectedIds((current) => {
+      const merged = new Set([...current, ...assessments.map((item) => item.id)]);
+      return Array.from(merged);
+    });
+  }
+
+  const trackSummary = useMemo(() => {
+    const summary: Record<string, number> = {};
+    assessments.forEach((item) => {
+      summary[item.recommended_track] =
+        (summary[item.recommended_track] || 0) + 1;
+    });
+    return Object.entries(summary)
+      .map(([trackName, count]) => ({ track: trackName, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [assessments]);
+
+  const averageMatchScore = useMemo(() => {
+    if (assessments.length === 0) return 0;
+    const totalScore = assessments.reduce((acc, item) => acc + item.match_score, 0);
+    return Math.round(totalScore / assessments.length);
+  }, [assessments]);
+
+  const topTrack = trackSummary[0]?.track || "-";
+  const hasFilters = Boolean(search || track || startDate || endDate);
+
+  useEffect(() => {
+    fetchAssessments("initial");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, track, startDate, endDate, sortBy, sortOrder]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, pageSize, search, track, startDate, endDate, sortBy, sortOrder]);
+
+  function exportCsv() {
+    if (assessments.length === 0) return;
 
     const headers = [
       "id",
@@ -295,7 +298,10 @@ export default function DashboardPage() {
       "created_at",
     ];
 
-    const rows = filteredAssessments.map((item: Assessment) => [
+    const escapeCsv = (value: string | number) =>
+      `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+    const rows = assessments.map((item) => [
       item.id,
       item.age,
       item.education,
@@ -311,76 +317,23 @@ export default function DashboardPage() {
     ]);
 
     const csvContent = [
-      headers.map((header: string) => escapeCsvValue(header)).join(","),
-      ...rows.map((row: (string | number)[]) =>
-        row.map((cell: string | number) => escapeCsvValue(cell)).join(",")
-      ),
+      headers.map(escapeCsv).join(","),
+      ...rows.map((row) => row.map(escapeCsv).join(",")),
     ].join("\n");
 
-    const bom = "\uFEFF";
-    const blob = new Blob([bom + csvContent], {
+    const blob = new Blob(["\uFEFF" + csvContent], {
       type: "text/csv;charset=utf-8;",
     });
-
-    const now = new Date();
-    const fileName = `assessments-export-${now
-      .toISOString()
-      .slice(0, 19)
-      .replace(/[:T]/g, "-")}.csv`;
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", fileName);
+    link.download = `assessments-page-${page}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    if ((window as any).addToast) {
-      (window as any).addToast({
-        message: `CSV exportado com ${filteredAssessments.length} assessments filtrados.`,
-        type: "success",
-      });
-    }
   }
-
-  useEffect(() => {
-    fetchAssessments("initial");
-  }, []);
-
-  useEffect(() => {
-    setSelectedIds((current) =>
-      current.filter((id) => filteredAssessments.some((item) => item.id === id))
-    );
-  }, [filteredAssessments]);
-
-  const trackSummary = useMemo(() => {
-    const summary: Record<string, number> = {};
-
-    filteredAssessments.forEach((item: Assessment) => {
-      summary[item.recommended_track] =
-        (summary[item.recommended_track] || 0) + 1;
-    });
-
-    return Object.entries(summary)
-      .map(([track, count]) => ({ track, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [filteredAssessments]);
-
-  const averageMatchScore = useMemo(() => {
-    if (filteredAssessments.length === 0) return 0;
-
-    const total = filteredAssessments.reduce(
-      (acc: number, item: Assessment) => acc + item.match_score,
-      0
-    );
-
-    return Math.round(total / filteredAssessments.length);
-  }, [filteredAssessments]);
-
-  const topTrack = trackSummary.length > 0 ? trackSummary[0].track : "-";
-  const hasFiltersApplied = Boolean(filterTrack || startDate || endDate);
 
   if (loading) {
     return (
@@ -392,63 +345,6 @@ export default function DashboardPage() {
     );
   }
 
-  if (isForbidden) {
-    return (
-      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-4 sm:py-10">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-bold text-gray-900">Acesso negado</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            Você não tem permissão para visualizar este dashboard.
-          </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={() => window.location.assign("/login")}
-              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Ir para o login
-            </button>
-            <a
-              href="/"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Voltar para Home
-            </a>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-4 sm:py-10">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Erro ao carregar dashboard
-          </h1>
-          <p className="mt-3 text-sm text-gray-600">{error}</p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={() => fetchAssessments()}
-              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Tentar novamente
-            </button>
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoggingOut ? "Saindo..." : "Sair"}
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const hasSelection = selectedIds.length > 0;
-
   return (
     <main className="min-h-screen bg-gray-50 px-3 py-6 sm:p-4 sm:py-10">
       <div className="mx-auto max-w-7xl">
@@ -458,28 +354,28 @@ export default function DashboardPage() {
               Dashboard
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Visualize os últimos diagnósticos gerados pela aplicação.
+              Assessments com paginação, busca, filtros e ordenação.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-            <a
-              href="/"
+            <button
+              onClick={() => router.push("/")}
               className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Voltar para Home
-            </a>
+            </button>
 
             <button
               onClick={() => fetchAssessments("refresh")}
-              disabled={loading || isRefreshing}
-              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isRefreshing}
+              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {isRefreshing ? "Atualizando..." : "Recarregar"}
             </button>
 
             <button
-              onClick={handleExportCsv}
+              onClick={exportCsv}
               className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
             >
               Exportar CSV
@@ -488,16 +384,16 @@ export default function DashboardPage() {
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
             >
               {isLoggingOut ? "Saindo..." : "Sair"}
             </button>
           </div>
         </div>
 
-        {isRefreshing && !loading && (
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-            Atualizando dados do dashboard...
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
         )}
 
@@ -507,24 +403,50 @@ export default function DashboardPage() {
               Filtros
             </h2>
             <p className="text-sm text-gray-500">
-              Refine os dados por trilha e período de criação.
+              Busca, trilha, período e tamanho da página.
             </p>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-4">
             <div className="lg:col-span-2">
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Filtrar por trilha
+                Busca textual
               </label>
               <input
                 type="text"
-                value={filterTrack}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFilterTrack(e.target.value)
-                }
-                placeholder="Ex: Dados, Marketing, CS"
+                value={search}
+                onChange={(e) => updateParams({ search: e.target.value, page: "1" })}
+                placeholder="Ex: dados, python, marketing"
                 className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:text-base"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Trilha
+              </label>
+              <input
+                type="text"
+                value={track}
+                onChange={(e) => updateParams({ track: e.target.value, page: "1" })}
+                placeholder="Ex: Dados"
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:text-base"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Tamanho da página
+              </label>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:text-base"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
             </div>
 
             <div>
@@ -534,9 +456,7 @@ export default function DashboardPage() {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setStartDate(e.target.value)
-                }
+                onChange={(e) => updateParams({ start_date: e.target.value, page: "1" })}
                 className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:text-base"
               />
             </div>
@@ -548,39 +468,13 @@ export default function DashboardPage() {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEndDate(e.target.value)
-                }
+                onChange={(e) => updateParams({ end_date: e.target.value, page: "1" })}
                 className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:text-base"
               />
             </div>
           </div>
 
-          {(filterTrack || startDate || endDate) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {filterTrack && (
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
-                  Trilha: {filterTrack}
-                </span>
-              )}
-              {startDate && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  De: {new Date(`${startDate}T00:00:00`).toLocaleDateString(
-                    "pt-BR"
-                  )}
-                </span>
-              )}
-              {endDate && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  Até: {new Date(`${endDate}T00:00:00`).toLocaleDateString(
-                    "pt-BR"
-                  )}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={clearFilters}
               className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -588,29 +482,30 @@ export default function DashboardPage() {
               Limpar filtros
             </button>
 
-            <div className="mt-2 text-sm text-gray-500">
-              {filteredAssessments.length} resultados
-              {(filterTrack || startDate || endDate) && (
-                <span className="ml-2 text-xs font-medium text-blue-600">
-                  (filtros ativos)
-                </span>
-              )}
-            </div>
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
+              {total} resultados
+            </span>
+
+            {hasFilters && (
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                filtros ativos
+              </span>
+            )}
           </div>
         </div>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-gray-500">Total carregado</p>
+            <p className="text-sm text-gray-500">Total filtrado</p>
             <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-              {assessments.length}
+              {total}
             </p>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-gray-500">Após filtro</p>
+            <p className="text-sm text-gray-500">Página atual</p>
             <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-              {filteredAssessments.length}
+              {page}
             </p>
           </div>
 
@@ -622,106 +517,38 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-gray-500">Match médio</p>
+            <p className="text-sm text-gray-500">Match médio da página</p>
             <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
               {averageMatchScore}%
             </p>
           </div>
         </div>
 
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-gray-900 sm:text-lg">
-              Distribuição por trilha
-            </h2>
-            <p className="text-sm text-gray-500">
-              Quantidade de assessments agrupados por trilha recomendada.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[320px]">
-              <TrackBarChart data={trackSummary} />
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-3 text-sm font-medium text-gray-700">
-            Resumo por trilha
-          </p>
-
-          <div className="space-y-2">
-            {trackSummary.length > 0 ? (
-              trackSummary.map((item: { track: string; count: number }) => (
-                <div
-                  key={item.track}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2"
-                >
-                  <span className="truncate text-sm text-gray-700">
-                    {item.track}
-                  </span>
-                  <span className="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                    {item.count}
-                  </span>
-                </div>
-              ))
-            ) : hasFiltersApplied ? (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500">
-                Nenhum assessment corresponde aos filtros selecionados. Tente
-                ajustar a trilha ou o período.
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Sem dados para exibir no resumo.
-              </p>
-            )}
-          </div>
-        </div>
-
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-bold text-gray-900 sm:text-lg">
-              Assessments
-            </h2>
-            <p className="text-sm text-gray-500">
-              Role horizontalmente no celular para ver todas as colunas.
-            </p>
-          </div>
-
-          {hasSelection && (
-            <div className="flex flex-col gap-3 border-b border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-red-800">
-                  {selectedIds.length} assessment
-                  {selectedIds.length > 1 ? "s" : ""} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </p>
-                <p className="text-sm text-red-700">
-                  Você pode limpar a seleção ou excluir os itens selecionados.
+                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                  Assessments
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {assessments.length} itens nesta página de {totalPages || 1}
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  onClick={clearSelection}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                >
-                  Limpar seleção
-                </button>
-
+              {selectedIds.length > 0 && (
                 <button
                   onClick={() => setShowBulkDeleteModal(true)}
-                  className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
                 >
-                  Excluir selecionados
+                  Excluir selecionados ({selectedIds.length})
                 </button>
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[1024px] w-full">
+            <table className="min-w-[1100px] w-full">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
                   <th className="px-4 py-3 text-left">
@@ -729,28 +556,32 @@ export default function DashboardPage() {
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      aria-label="Selecionar todos os assessments visíveis"
                       className="h-4 w-4 rounded border-gray-300"
                     />
                   </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    ID
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Trilha
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Match
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Área atual
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Pretensão
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Data
-                  </th>
+
+                  {[
+                    ["id", "ID"],
+                    ["recommended_track", "Trilha"],
+                    ["match_score", "Match"],
+                    ["current_field", "Área atual"],
+                    ["target_salary", "Pretensão"],
+                    ["created_at", "Data"],
+                  ].map(([field, label]) => (
+                    <th
+                      key={field}
+                      onClick={() => updateSort(field as SortField)}
+                      className="cursor-pointer whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                    >
+                      {label}
+                      {sortBy === field && (
+                        <span className="ml-1">
+                          {sortOrder === "asc" ? "▲" : "▼"}
+                        </span>
+                      )}
+                    </th>
+                  ))}
+
                   <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                     Ações
                   </th>
@@ -758,23 +589,13 @@ export default function DashboardPage() {
               </thead>
 
               <tbody className="divide-y divide-gray-200">
-                {filteredAssessments.map((assessment: Assessment) => (
-                  <tr
-                    key={assessment.id}
-                    className={`cursor-pointer hover:bg-gray-50 ${
-                      selectedIds.includes(assessment.id) ? "bg-blue-50" : ""
-                    }`}
-                    onClick={() => router.push(`/dashboard/${assessment.id}`)}
-                  >
-                    <td
-                      className="px-4 py-4"
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                {assessments.map((assessment) => (
+                  <tr key={assessment.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(assessment.id)}
                         onChange={() => toggleSelected(assessment.id)}
-                        aria-label={`Selecionar assessment ${assessment.id}`}
                         className="h-4 w-4 rounded border-gray-300"
                       />
                     </td>
@@ -802,13 +623,16 @@ export default function DashboardPage() {
                     </td>
 
                     <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-500">
-                      {new Date(assessment.created_at).toLocaleDateString(
-                        "pt-BR"
-                      )}
+                      {new Date(assessment.created_at).toLocaleDateString("pt-BR")}
                     </td>
 
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-blue-600">
-                      Ver detalhes
+                    <td className="whitespace-nowrap px-4 py-4 text-sm">
+                      <button
+                        onClick={() => router.push(`/dashboard/${assessment.id}`)}
+                        className="font-semibold text-blue-600 hover:text-blue-800"
+                      >
+                        Ver detalhes
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -816,28 +640,39 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {filteredAssessments.length === 0 && (
+          {assessments.length === 0 && (
             <div className="p-6 text-center sm:p-8">
-              <div className="mx-auto max-w-md">
-                <p className="text-base font-semibold text-gray-900">
-                  Nenhum assessment encontrado
-                </p>
-                <p className="mt-2 text-sm text-gray-500">
-                  Tente ajustar os filtros de trilha ou período para visualizar
-                  mais resultados.
-                </p>
-
-                {hasFiltersApplied && (
-                  <button
-                    onClick={clearFilters}
-                    className="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    Limpar filtros
-                  </button>
-                )}
-              </div>
+              <p className="text-base font-semibold text-gray-900">
+                Nenhum assessment encontrado
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                Verifique os filtros aplicados ou a comunicação com a API.
+              </p>
             </div>
           )}
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Anterior
+          </button>
+
+          <div className="text-sm text-gray-600">
+            Página <span className="font-semibold">{page}</span> de{" "}
+            <span className="font-semibold">{totalPages || 1}</span>
+          </div>
+
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage(page + 1)}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Próxima
+          </button>
         </div>
       </div>
 
@@ -848,9 +683,9 @@ export default function DashboardPage() {
         title="Excluir assessments selecionados"
         message={`Tem certeza que deseja excluir ${selectedIds.length} assessment${
           selectedIds.length > 1 ? "s" : ""
-        }? Esta ação não pode ser desfeita.`}
-        confirmLabel={isBulkDeleting ? "Excluindo..." : "Excluir"}
+        }? Essa ação não pode ser desfeita.`}
         cancelLabel="Cancelar"
+        confirmLabel="Excluir"
         isConfirming={isBulkDeleting}
       />
     </main>

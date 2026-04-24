@@ -2,19 +2,29 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from enum import Enum
+from math import ceil
+from typing import Generic, TypeVar
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel
+from pydantic.generics import GenericModel
+from sqlalchemy import asc, desc, func, or_, text
 from sqlmodel import Session, SQLModel, select
 
 from auth import verify_admin_token
 from database import engine
 from models import Assessment
-from schemas import AssessmentCreate, AssessmentRead
+from schemas import (
+    AssessmentCreate,
+    AssessmentRead,
+    PaginatedResponse,
+    SortField,
+    SortOrder,
+)
 from settings import settings
 
 
@@ -29,7 +39,10 @@ app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -143,7 +156,6 @@ def ready():
             },
         )
 
-
 @app.post("/assessments", response_model=AssessmentRead)
 def create_assessment(
     payload: AssessmentCreate,
@@ -156,10 +168,61 @@ def create_assessment(
     return assessment
 
 
-@app.get("/assessments", response_model=list[AssessmentRead])
-def list_assessments(session: Session = Depends(get_session)):
-    items = session.exec(select(Assessment).order_by(Assessment.id.desc())).all()
-    return items
+@app.get("/assessments", response_model=PaginatedResponse[AssessmentRead])
+def list_assessments(
+    session: Session = Depends(get_session),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    search: str | None = Query(None),
+    track: str | None = Query(None),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    sort_by: SortField = Query(SortField.created_at),
+    sort_order: SortOrder = Query(SortOrder.desc),
+):
+    stmt = select(Assessment)
+
+    if search:
+        pattern = f"%{search.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Assessment.current_field.ilike(pattern),
+                Assessment.interests.ilike(pattern),
+                Assessment.recommended_track.ilike(pattern),
+                Assessment.reason.ilike(pattern),
+                Assessment.education.ilike(pattern),
+            )
+        )
+
+    if track:
+        stmt = stmt.where(Assessment.recommended_track.ilike(f"%{track.strip()}%"))
+
+    if start_date:
+        stmt = stmt.where(func.date(Assessment.created_at) >= start_date)
+
+    if end_date:
+        stmt = stmt.where(func.date(Assessment.created_at) <= end_date)
+
+    total_stmt = select(func.count()).select_from(stmt.subquery())
+    total = session.exec(total_stmt).one()
+
+    sort_column = getattr(Assessment, sort_by.value)
+    ordering = desc(sort_column) if sort_order == SortOrder.desc else asc(sort_column)
+
+    offset = (page - 1) * page_size
+    items = session.exec(
+        stmt.order_by(ordering).offset(offset).limit(page_size)
+    ).all()
+
+    total_pages = ceil(total / page_size) if total > 0 else 1
+
+    return PaginatedResponse[AssessmentRead](
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
 
 
 @app.get("/assessments/{assessment_id}", response_model=AssessmentRead)
