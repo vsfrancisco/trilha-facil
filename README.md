@@ -1,17 +1,61 @@
 # TrilhaFácil API
 
-Backend da **TrilhaFácil** construído com **FastAPI + SQLModel**, com configuração centralizada por variáveis de ambiente, autenticação administrativa por token e endpoints de health/readiness para deploy mais previsível.[1][2]
+[![FastAPI](https://img.shields.io/badge/FastAPI-109989?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![SQLModel](https://img.shields.io/badge/SQLModel-111827?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlmodel.tiangolo.com/)
+[![Render](https://img.shields.io/badge/Render-2D2D2D?style=for-the-badge&logo=render&logoColor=white)](https://render.com/)
 
-A estrutura proposta concentra `settings`, banco, autenticação e CORS em uma única organização de projeto, o que reduz configuração espalhada e facilita manutenção local e em produção.[3][4]
+Backend da **TrilhaFácil** construído com **FastAPI + SQLModel**, com configuração centralizada por variáveis de ambiente, autenticação administrativa por token, CORS explícito para o frontend e endpoints de health/readiness prontos para produção.[web:2223][web:2182][web:1638][web:874]
+
+---
+
+## Índice
+
+- [Visão geral](#visão-geral)
+- [Stack](#stack)
+- [Recursos](#recursos)
+- [Estrutura](#estrutura)
+- [Ambiente](#ambiente)
+- [Rodando localmente](#rodando-localmente)
+- [Endpoints](#endpoints)
+- [Produção](#produção)
+- [Deploy no Render](#deploy-no-render)
+- [requirements.txt](#requirementstxt)
+- [Fluxo de desenvolvimento](#fluxo-de-desenvolvimento)
+- [Boas práticas cobertas](#boas-práticas-cobertas)
+- [Próximos passos](#próximos-passos)
+
+---
+
+## Visão geral
+
+A API foi organizada para facilitar desenvolvimento local e deploy previsível no Render. A base concentra `settings`, banco, autenticação e CORS em uma estrutura simples, reduzindo configuração espalhada e evitando problemas clássicos de integração entre frontend e backend.[web:2223][web:2182][web:874]
+
+---
 
 ## Stack
 
-- **FastAPI** para a API HTTP.[5]
-- **SQLModel/SQLAlchemy** para modelagem e acesso ao banco relacional.[6][7]
-- **Pydantic Settings** para carregar e validar variáveis de ambiente.[1][8]
-- **Uvicorn** para execução da aplicação ASGI em desenvolvimento e produção.[5]
+- **FastAPI** — API HTTP moderna com documentação automática.[web:2223]
+- **SQLModel / SQLAlchemy** — modelagem e persistência relacional.[web:2231]
+- **Pydantic Settings** — configuração tipada e validada por ambiente.[web:2223][web:2224]
+- **Uvicorn** — servidor ASGI para desenvolvimento e produção.[web:2223]
+- **PostgreSQL / SQLite** — banco local e banco de produção.[web:874][web:2231]
 
-## Estrutura sugerida
+---
+
+## Recursos
+
+- Configuração centralizada em `settings.py`.[web:2223]
+- Validação de variáveis obrigatórias na inicialização.[web:2223][web:2228]
+- CORS configurado para o frontend do projeto.[web:2182][web:874]
+- Endpoint `/health` para monitoramento e health checks.[web:1638][web:874]
+- Endpoint `/ready` para readiness operacional.[web:1638]
+- Autenticação administrativa por token em rotas sensíveis.[web:874]
+- Base pronta para deploy no Render com variáveis segregadas por ambiente.[web:874][web:1638]
+
+---
+
+## Estrutura
 
 ```txt
 .
@@ -26,49 +70,11 @@ A estrutura proposta concentra `settings`, banco, autenticação e CORS em uma �
 └── .env.example
 ```
 
-## Recursos principais
+---
 
-- Configuração centralizada via `settings.py`.[1][3]
-- Validação de variáveis obrigatórias ainda na inicialização.[8]
-- CORS configurado a partir de `CORS_ORIGINS`.[4]
-- Endpoint de saúde (`/health`) para monitoramento e health checks no deploy.[2][9]
-- Endpoint de prontidão (`/ready`) para readiness operacional.[2]
-- Base pronta para SQLite em dev e PostgreSQL em produção.[7][10]
+## Ambiente
 
-## Como instalar
-
-### 1. Clone o repositório
-
-```bash
-git clone <url-do-repo>
-cd <nome-do-repo>
-```
-
-### 2. Crie e ative o ambiente virtual
-
-#### Linux/macOS
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-#### Windows PowerShell
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-### 3. Instale as dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-## Configuração
-
-Crie o arquivo `.env` com base no exemplo abaixo. O FastAPI suporta leitura de variáveis de ambiente com uma camada dedicada de settings, e a estratégia com `pydantic-settings` facilita defaults, tipagem e validação.[1][11]
+Crie o arquivo `.env` com base no exemplo abaixo. O uso de `pydantic-settings` ajuda a manter as variáveis tipadas e previsíveis.[web:2223][web:2224]
 
 ```env
 ENVIRONMENT=development
@@ -78,54 +84,70 @@ ADMIN_TOKEN=troque-este-token
 CORS_ORIGINS=http://localhost:3000
 ```
 
-### Variáveis
-
-| Variável | Obrigatória | Descrição |
+| Variável | Obrigatória | Função |
 |---|---|---|
-| `ENVIRONMENT` | Sim | Ambiente da aplicação: `development`, `staging`, `production` ou `test`.[1] |
-| `LOG_LEVEL` | Sim | Nível de log, como `INFO` ou `DEBUG`.[3] |
-| `DATABASE_URL` | Sim | URL de conexão do banco; pode ser SQLite local ou PostgreSQL em produção.[7][10] |
-| `ADMIN_TOKEN` | Sim | Token usado para acesso a rotas administrativas.[1] |
-| `CORS_ORIGINS` | Sim | Lista de origens permitidas, separadas por vírgula.[4] |
+| `ENVIRONMENT` | Sim | Ambiente da aplicação: `development`, `staging`, `production` ou `test`.[web:2223] |
+| `LOG_LEVEL` | Sim | Nível de logs da aplicação. |
+| `DATABASE_URL` | Sim | URL do banco, SQLite no dev e PostgreSQL em produção.[web:2231][web:874] |
+| `ADMIN_TOKEN` | Sim | Token de autenticação administrativa.[web:874] |
+| `CORS_ORIGINS` | Sim | Origens permitidas para o frontend.[web:2182][web:874] |
 
-## Como rodar localmente
+---
+
+## Rodando localmente
+
+### Instalação
+
+```bash
+git clone <url-do-repo>
+cd <nome-do-repo>
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Execução
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Depois disso, a aplicação normalmente ficará disponível nestes endereços:
+Depois disso:
 
 - App: `http://127.0.0.1:8000`
-- Swagger UI: `http://127.0.0.1:8000/docs`
+- Swagger: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-## Endpoints úteis
+---
+
+## Endpoints
 
 | Endpoint | Método | Finalidade |
 |---|---|---|
-| `/` | `GET` | Resposta simples para confirmar que a API subiu. |
-| `/health` | `GET` | Verifica saúde geral e conexão com o banco para health checks.[2] |
-| `/ready` | `GET` | Indica se a aplicação está pronta para receber tráfego.[2] |
-| `/docs` | `GET` | Interface Swagger gerada pelo FastAPI.[5] |
+| `/` | `GET` | Confirma que a API subiu. |
+| `/health` | `GET` | Health check da aplicação e do banco.[web:1638][web:874] |
+| `/ready` | `GET` | Indica prontidão para tráfego.[web:1638] |
+| `/docs` | `GET` | Swagger UI automática do FastAPI.[web:2223] |
 
-## Exemplo de produção
+---
 
-Exemplo de `.env` usando PostgreSQL:
+## Produção
+
+Exemplo de `.env` para produção com PostgreSQL:
 
 ```env
 ENVIRONMENT=production
 LOG_LEVEL=INFO
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ADMIN_TOKEN=token-super-seguro
-CORS_ORIGINS=https://seu-frontend.onrender.com
+CORS_ORIGINS=https://trilha-facil-frontend.onrender.com
 ```
 
-Se o projeto for usar PostgreSQL no deploy, o ambiente precisa ter o driver correspondente instalado junto com as dependências da aplicação.[10][12]
+No Render, health checks e variáveis de ambiente são parte central do deploy seguro, e o CORS deve listar a origem exata do frontend em produção.[web:874][web:1638][web:2182]
+
+---
 
 ## Deploy no Render
-
-O Render oferece suporte a health checks configuráveis, o que combina bem com uma rota dedicada como `/health`.[2]
 
 ### Build Command
 
@@ -145,9 +167,11 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 /health
 ```
 
-## `requirements.txt` recomendado
+Render documenta health checks como parte importante do deploy de serviços FastAPI.[web:1638][web:874]
 
-Para um ambiente com PostgreSQL em produção:
+---
+
+## `requirements.txt`
 
 ```txt
 fastapi
@@ -160,33 +184,29 @@ python-dotenv
 psycopg[binary]
 ```
 
-## Exemplo de `.env.example`
-
-```env
-ENVIRONMENT=development
-LOG_LEVEL=INFO
-DATABASE_URL=sqlite:///./trilhafacil.db
-ADMIN_TOKEN=troque-este-token
-CORS_ORIGINS=http://localhost:3000
-```
+---
 
 ## Fluxo de desenvolvimento
 
 1. Ajustar `.env` local.
 2. Rodar `uvicorn main:app --reload`.
 3. Validar `/docs`, `/health` e `/ready`.
-4. Testar integração com o frontend local.
-5. Publicar com variáveis de produção configuradas no provedor de deploy.[2][9]
+4. Testar integração com o frontend.
+5. Publicar com variáveis de produção configuradas no provedor de deploy.[web:1638][web:874][web:2182]
 
-## Boas práticas já cobertas
+---
 
-- Configuração centralizada em vez de `os.getenv()` espalhado.[3]
-- Separação entre settings, autenticação e banco.[1][13]
-- CORS explícito para reduzir problemas entre frontend e backend.[4][14]
-- Health checks para detectar falhas de instância ou banco no deploy.[2][9]
+## Boas práticas cobertas
 
-## Próximos passos recomendados
+- Configuração centralizada com settings tipadas.[web:2223][web:2224]
+- Separação clara entre banco, auth e configuração.[web:874]
+- CORS explícito para integração com frontend.[web:2182][web:874]
+- Health check pronto para monitoramento no Render.[web:1638][web:874]
 
-- Adicionar `.gitignore` apropriado para Python e `.env` local.
-- Criar testes de smoke para `/health`, `/ready` e fluxo principal.
-- Documentar o frontend esperado em `CORS_ORIGINS` para evitar erro entre ambientes.[15][4]
+---
+
+## Próximos passos
+
+- Adicionar `.gitignore` para Python e `.env`.
+- Criar testes de smoke para `/health`, `/ready` e o fluxo principal.
+- Documentar as origens esperadas em `CORS_ORIGINS` para evitar erro entre ambientes.[web:1638][web:2182]
