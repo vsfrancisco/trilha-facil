@@ -64,8 +64,8 @@ function LoginContent() {
 
       setError(message);
 
-      if ((window as any).addToast) {
-        (window as any).addToast({
+      if (window.addToast) {
+        window.addToast({
           message,
           type: "error",
         });
