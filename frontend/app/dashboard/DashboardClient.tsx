@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
+import { env } from "@/lib/env";
 
 type Assessment = {
   id: number;
@@ -75,8 +76,7 @@ export default function DashboardPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const apiBaseUrl = env.apiBaseUrl;
 
   function updateParams(updates: Record<string, string | undefined>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -104,7 +104,7 @@ export default function DashboardPage() {
     params.set("sort_by", sortBy);
     params.set("sort_order", sortOrder);
 
-    return `${API_BASE_URL}/assessments?${params.toString()}`;
+    return `${apiBaseUrl}/assessments?${params.toString()}`;
   }
 
   async function fetchAssessments(mode: "initial" | "refresh" = "initial") {
@@ -170,7 +170,7 @@ export default function DashboardPage() {
 
       const results = await Promise.allSettled(
         selectedIds.map((id) =>
-          fetch(`${API_BASE_URL}/assessments/${id}`, {
+          fetch(`${apiBaseUrl}/assessments/${id}`, {
             method: "DELETE",
             headers: {
               Accept: "application/json",
