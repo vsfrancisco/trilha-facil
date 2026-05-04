@@ -1,284 +1,298 @@
-# TrilhaFácil API
+# TrilhaFácil
 
 <p align="center">
-  Backend da <strong>TrilhaFácil</strong> construído com <strong>FastAPI + SQLModel</strong>, com autenticação administrativa, configuração centralizada, health checks, CI com GitHub Actions e deploy pronto para o Render.
+  <strong>Descubra sua próxima carreira no mercado digital.</strong>
 </p>
 
 <p align="center">
-  <a href="https://fastapi.tiangolo.com/">
-    <img src="https://img.shields.io/badge/FastAPI-109989?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
-  </a>
-  <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  </a>
-  <a href="https://sqlmodel.tiangolo.com/">
-    <img src="https://img.shields.io/badge/SQLModel-111827?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLModel">
-  </a>
-  <a href="https://render.com/">
-    <img src="https://img.shields.io/badge/Render-2D2D2D?style=for-the-badge&logo=render&logoColor=white" alt="Render">
-  </a>
-  <a href="https://github.com/features/actions">
-    <img src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions">
-  </a>
+  Aplicação full stack com <strong>Next.js</strong> no frontend e <strong>FastAPI</strong> no backend, com foco em confiabilidade, validação de ambiente, observabilidade e operação segura.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/ORM-SQLModel-111827?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLModel">
+  <img src="https://img.shields.io/badge/Deploy-Render-2D2D2D?style=for-the-badge&logo=render&logoColor=white" alt="Render">
+  <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
 
 ---
 
-## ✨ Visão geral
+## Visão geral
 
-A **TrilhaFácil API** foi organizada para facilitar desenvolvimento local, deploy previsível e manutenção em produção. A arquitetura centraliza configurações, autenticação, banco, CORS e monitoramento em uma base simples e prática.[web:874][web:2398]
+O **TrilhaFácil** ajuda usuários a identificar uma trilha de carreira recomendada com base em informações do perfil, interesses e objetivos. O sistema também possui uma área administrativa com dashboard para consulta, filtros, paginação e gestão dos assessments enviados.[web:2601][web:2604]
 
-Hoje o projeto já conta com:
-- autenticação administrativa por token;
-- integração com frontend publicado;
-- endpoints de health/readiness;
-- CI no GitHub Actions;
-- smoke tests automatizados;
-- checklist de rollback para incidentes.[web:874][web:2233]
+Além das funcionalidades de produto, o projeto evoluiu para uma base mais robusta de engenharia, com validação de ambiente no frontend e backend, smoke tests, CI/CD e documentação operacional para deploy e rollback.[web:2410][web:1925][web:2211]
 
 ---
 
-## 📚 Índice
+## Stack
 
-- [Tecnologias](#-tecnologias)
-- [Recursos](#-recursos)
-- [Estrutura](#-estrutura)
-- [Configuração](#-configuração)
-- [Como rodar localmente](#-como-rodar-localmente)
-- [Endpoints principais](#-endpoints-principais)
-- [Deploy no Render](#-deploy-no-render)
-- [CI/CD e qualidade](#-cicd-e-qualidade)
-- [Variáveis de ambiente](#-variáveis-de-ambiente)
-- [Próximos passos](#-próximos-passos)
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
 
----
+### Backend
+- FastAPI
+- SQLModel
+- SQLAlchemy
+- Pydantic Settings
 
-## 🚀 Tecnologias
+### Infraestrutura
+- PostgreSQL
+- Render
+- GitHub Actions
 
-- **FastAPI** — framework principal da API.[web:2233]
-- **SQLModel / SQLAlchemy** — modelagem e persistência relacional.
-- **Pydantic Settings** — configuração via ambiente com tipagem e validação.
-- **Uvicorn** — execução da aplicação ASGI.
-- **SQLite / PostgreSQL** — banco local e banco de produção.
-- **GitHub Actions** — CI para frontend e backend.
-- **Render** — deploy com health checks e rollback.[web:874][web:2243]
+Essa combinação é bastante aderente a aplicações web modernas, com tipagem forte no frontend, validação declarativa no backend e boa integração para deploy contínuo.[web:2604][web:2607]
 
 ---
 
-## 🧩 Recursos
+## Funcionalidades
 
-- Configuração centralizada em `settings.py`.
-- Validação de variáveis obrigatórias no startup.
-- CORS configurável para ambientes local e produção.[web:874]
-- Endpoint `/health` para monitoramento.
-- Endpoint `/ready` para readiness.
-- Autenticação administrativa por token.
-- Smoke tests básicos para validar ambiente publicado.
-- Template de Pull Request para padronizar revisões.
-- Checklist de rollback para incidentes em produção.[web:874][web:2233]
+- Formulário principal para gerar recomendação de trilha.
+- Resultado com trilha sugerida, match percentual, justificativa e plano inicial.
+- Dashboard administrativo com listagem paginada de assessments.
+- Busca, filtros por trilha e intervalo de datas.
+- Ordenação por múltiplos campos.
+- Exclusão de registros com autenticação administrativa.
+- Login/logout da área administrativa.
+- Health checks e readiness checks para operação em produção.[web:2601]
 
 ---
 
-## 🗂 Estrutura
+## Estrutura do projeto
 
 ```txt
-.
-├── .github/
-│   └── workflows/
-│       ├── frontend-ci.yml
-│       └── backend-ci.yml
+trilha-facil/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   └── package.json
+├── backend/
+│   ├── main.py
+│   ├── settings.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── auth.py
+│   ├── database.py
+│   └── requirements.txt
 ├── docs/
 │   └── rollback-checklist.md
-├── tests/
-│   └── test_health.py
-├── auth.py
-├── database.py
-├── main.py
-├── models.py
-├── schemas.py
-├── settings.py
-├── requirements.txt
-├── smoke-test.sh
-├── .env
-└── .env.example
+└── .github/
+    └── workflows/
 ```
 
 ---
 
-## ⚙️ Configuração
+## Ambientes e configuração
 
-Crie um arquivo `.env` com base no exemplo abaixo:
+O projeto usa validação explícita de variáveis de ambiente no backend e no frontend. Isso significa que builds e deploys falham cedo quando uma variável obrigatória está ausente ou inválida, reduzindo erro silencioso em produção.[web:2410][web:1925]
+
+### Backend
+No backend, a configuração foi centralizada com **Pydantic Settings**, incluindo validação de ambiente, URL de banco, token administrativo, `SECRET_KEY` e lista de origens CORS.[web:2410]
+
+Exemplo de `.env` do backend:
 
 ```env
-ENVIRONMENT=development
+APP_NAME=Trilha Fácil
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
+SECRET_KEY=uma-chave-forte-com-mais-de-16-caracteres
+ADMIN_TOKEN=um-token-forte
+ENVIRONMENT=production
 LOG_LEVEL=INFO
-DATABASE_URL=sqlite:///./trilhafacil.db
-ADMIN_TOKEN=troque-este-token
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,https://trilha-facil-frontend.onrender.com
 ```
 
-A configuração por ambiente ajuda a manter desenvolvimento e produção previsíveis, especialmente em deploys automatizados.[web:874][web:2259]
+### Frontend
+No frontend, a env pública principal é validada antes do build:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://trilha-facil-backend.onrender.com
+```
+
+Como variáveis `NEXT_PUBLIC_*` são embutidas no build do Next.js, elas também precisam existir no ambiente do CI para o `build` passar corretamente.[web:1925]
 
 ---
 
-## 💻 Como rodar localmente
+## Como rodar localmente
 
-### 1. Clonar o repositório
+### 1. Clone o repositório
 
 ```bash
 git clone <url-do-repo>
-cd <nome-do-repo>
+cd trilha-facil
 ```
 
-### 2. Criar ambiente virtual
-
-#### Linux/macOS
+### 2. Backend
 
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate
-```
-
-#### Windows PowerShell
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-### 3. Instalar dependências
-
-```bash
 pip install -r requirements.txt
-```
-
-### 4. Rodar a aplicação
-
-```bash
 uvicorn main:app --reload
 ```
 
-Depois disso:
+Backend disponível em:
 
-- App: `http://127.0.0.1:8000`
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
+```txt
+http://127.0.0.1:8000
+```
+
+Documentação automática:
+
+```txt
+http://127.0.0.1:8000/docs
+```
+
+### 3. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend disponível em:
+
+```txt
+http://localhost:3000
+```
 
 ---
 
-## 🔎 Endpoints principais
+## Endpoints importantes
 
 | Endpoint | Método | Descrição |
 |---|---|---|
-| `/` | `GET` | Confirma que a API está online |
+| `/` | `GET` | Verifica se a API está online |
 | `/health` | `GET` | Health check da aplicação |
-| `/ready` | `GET` | Readiness para deploy e monitoramento |
-| `/docs` | `GET` | Swagger UI |
-| `/redoc` | `GET` | Documentação alternativa |
+| `/ready` | `GET` | Readiness check com verificação do banco |
+| `/assessments` | `GET` | Lista assessments com paginação e filtros |
+| `/assessments` | `POST` | Cria novo assessment |
+| `/assessments/{id}` | `GET` | Consulta assessment por ID |
+| `/assessments/{id}` | `DELETE` | Remove assessment com autenticação |
 
-Health checks são importantes em plataformas como Render porque ajudam a validar a instância antes de receber tráfego de produção.[web:874][web:2243]
+Health checks são especialmente úteis em plataformas como Render, que usam esse sinal para validar instâncias antes de expor tráfego de produção.[web:2601]
 
 ---
 
-## ☁️ Deploy no Render
+## Dashboard administrativo
 
-### Build Command
+A área administrativa permite consultar e gerenciar os assessments recebidos pelo sistema. O dashboard foi ajustado para depender de uma env validada (`NEXT_PUBLIC_API_BASE_URL`), evitando erro silencioso de integração com backend em build e runtime.[web:1925]
+
+Recursos principais:
+- login administrativo;
+- tabela paginada;
+- busca textual;
+- filtros;
+- ordenação;
+- remoção de registros;
+- feedback visual com toasts.
+
+---
+
+## Qualidade e operação
+
+O projeto passou por duas sprints focadas em confiabilidade operacional.
+
+### Sprint 8 — Base de operação
+- CI do frontend;
+- CI do backend;
+- smoke tests automatizados;
+- template de Pull Request;
+- rollback checklist.[web:2211]
+
+### Sprint 9 — Hardening
+- Pydantic Settings no backend;
+- validação de env no frontend;
+- correções de lint e typecheck;
+- build falhando cedo quando env obrigatória está ausente;
+- ajustes para reduzir configuração frágil entre local, CI e produção.[web:2410][web:1925][web:2593]
+
+---
+
+## Scripts úteis
+
+### Frontend
 
 ```bash
-pip install -r requirements.txt
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-### Start Command
+### Backend
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
+pytest
 ```
 
-### Health Check Path
-
-```txt
-/health
-```
-
-O Render suporta deploy contínuo integrado ao GitHub e usa health checks para decidir quando uma nova versão está pronta para receber tráfego.[web:874][web:2259]
-
----
-
-## ✅ CI/CD e qualidade
-
-O projeto já possui base para qualidade e operação:
-
-### GitHub Actions
-- `frontend-ci.yml` para lint, typecheck e build do frontend.
-- `backend-ci.yml` para instalar dependências e rodar testes do backend.[web:2245]
-
-### Smoke tests
-O script `smoke-test.sh` valida endpoints principais do ambiente publicado, ajudando a detectar falhas grosseiras após deploy.[web:2233]
-
-### Pull Request template
-Padroniza descrição, testes, risco e rollback da mudança.
-
-### Rollback checklist
-Documento operacional para reversão rápida de releases com problema, especialmente útil em produção com Render.[web:874]
-
----
-
-## 🔐 Variáveis de ambiente
-
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `ENVIRONMENT` | Sim | Ambiente da aplicação |
-| `LOG_LEVEL` | Sim | Nível de logs |
-| `DATABASE_URL` | Sim | URL do banco |
-| `ADMIN_TOKEN` | Sim | Token de autenticação administrativa |
-| `CORS_ORIGINS` | Sim | Lista de origens permitidas |
-
-### Exemplo para produção
-
-```env
-ENVIRONMENT=production
-LOG_LEVEL=INFO
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
-ADMIN_TOKEN=token-super-seguro
-CORS_ORIGINS=https://trilha-facil-frontend.onrender.com
-```
-
----
-
-## 🧪 Testes
-
-### Rodar testes do backend
-
-```bash
-PYTHONPATH=. pytest
-```
-
-### Rodar smoke test
+### Smoke test
 
 ```bash
 BASE_URL=https://trilha-facil-backend.onrender.com ./smoke-test.sh
 ```
 
----
-
-## 📌 Boas práticas cobertas
-
-- Configuração centralizada.
-- CORS explícito por ambiente.
-- Health checks para deploy.
-- CI automatizado com GitHub Actions.
-- Teste automatizado básico no backend.
-- Smoke test para ambiente publicado.
-- Checklist de rollback para incidentes.[web:874][web:2233]
+Separar lint, typecheck e build no CI ajuda a detectar erros mais cedo e torna o pipeline mais previsível.[web:2393][web:2604]
 
 ---
 
-## 🛣 Próximos passos
+## Deploy
 
-- Expandir cobertura de testes do backend.
-- Adicionar testes para rotas de negócio.
-- Refinar observabilidade e logs.
-- Evoluir smoke tests para fluxo funcional mais completo.
-- Revisar warnings de depreciação do FastAPI e Pydantic no código atual.
+O deploy da aplicação é feito no **Render**, com frontend e backend publicados separadamente. O backend expõe health checks, e o frontend depende de `NEXT_PUBLIC_API_BASE_URL` corretamente definido tanto no ambiente de produção quanto no CI.[web:1925]
+
+Itens importantes de deploy:
+- configurar envs em cada serviço;
+- manter CORS consistente com a URL pública do frontend;
+- validar `/health` e `/ready` após release;
+- usar o checklist de rollback em caso de regressão.
 
 ---
+
+## Segurança e hardening
+
+Alguns pontos já incorporados ao projeto:
+- validação de env obrigatória;
+- CORS configurado por ambiente;
+- autenticação administrativa por token;
+- cookies HTTP-only no fluxo administrativo;
+- falha explícita em caso de configuração incompleta;
+- redução de `any` e melhoria de tipagem no frontend.[web:2410][web:1925][web:2607]
+
+Próximos endurecimentos naturais:
+- rotação periódica de segredos;
+- revisão final de logs e debug residual;
+- checklist recorrente de segurança antes de releases maiores.[web:2585][web:2596]
+
+---
+
+## Documentação operacional
+
+Arquivos já adicionados ao projeto:
+- `docs/rollback-checklist.md`
+- `PULL_REQUEST_TEMPLATE.md`
+- workflows em `.github/workflows/`
+
+Esses artefatos ajudam a padronizar deploy, revisão e recuperação em caso de incidente.[web:2599][web:2394]
+
+---
+
+## Status atual
+
+O projeto está em um ponto mais maduro do que um protótipo inicial: além da funcionalidade principal, já possui base de validação, integração contínua e preparação operacional para produção. Isso reduz retrabalho e dá mais segurança para evoluir novas features sem quebrar o que já existe.[web:2584][web:2587]
+
+---
+
+## Observação
+
+Se este README for usado no repositório principal, vale complementar depois com:
+- screenshots da home e do dashboard;
+- link público do frontend;
+- link da documentação da API;
+- GIF curto do fluxo principal.
