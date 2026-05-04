@@ -3,30 +3,19 @@ import logging
 import time
 import uuid
 from datetime import date, datetime, timezone
-from enum import Enum
 from math import ceil
-from typing import Generic, TypeVar
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from pydantic.generics import GenericModel
 from sqlalchemy import asc, desc, func, or_, text
 from sqlmodel import Session, SQLModel, select
 
 from auth import verify_admin_token
 from database import engine
 from models import Assessment
-from schemas import (
-    AssessmentCreate,
-    AssessmentRead,
-    PaginatedResponse,
-    SortField,
-    SortOrder,
-)
+from schemas import AssessmentCreate, AssessmentRead, PaginatedResponse, SortField, SortOrder
 from settings import settings
-
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -36,15 +25,9 @@ logger = logging.getLogger("app")
 
 app = FastAPI(title=settings.app_name)
 
-
-origins = [
-    "http://localhost:3000",
-    "https://trilha-facil-frontend.onrender.com",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,16 +43,20 @@ async def log_requests(request: Request, call_next):
         response = await call_next(request)
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        logger.info(json.dumps({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "level": "INFO",
-            "request_id": request_id,
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": response.status_code,
-            "duration_ms": duration_ms,
-            "client": request.client.host if request.client else None,
-        }))
+        logger.info(
+            json.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "level": "INFO",
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": duration_ms,
+                    "client": request.client.host if request.client else None,
+                }
+            )
+        )
 
         response.headers["X-Request-ID"] = request_id
         return response
@@ -77,15 +64,19 @@ async def log_requests(request: Request, call_next):
     except Exception as exc:
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        logger.exception(json.dumps({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "level": "ERROR",
-            "request_id": request_id,
-            "method": request.method,
-            "path": request.url.path,
-            "duration_ms": duration_ms,
-            "error": str(exc),
-        }))
+        logger.exception(
+            json.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "level": "ERROR",
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration_ms": duration_ms,
+                    "error": str(exc),
+                }
+            )
+        )
 
         return JSONResponse(
             status_code=500,
@@ -106,13 +97,17 @@ def get_session():
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
-    logger.info(json.dumps({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "level": "INFO",
-        "message": "Application startup complete",
-        "environment": settings.environment,
-        "app_name": settings.app_name,
-    }))
+    logger.info(
+        json.dumps(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "level": "INFO",
+                "message": "Application startup complete",
+                "environment": settings.environment,
+                "app_name": settings.app_name,
+            }
+        )
+    )
 
 
 @app.get("/")
@@ -157,6 +152,7 @@ def ready():
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
+
 
 @app.post("/assessments", response_model=AssessmentRead)
 def create_assessment(
