@@ -1,6 +1,29 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+type ErrorPayload = {
+  detail?: string;
+  error?: string;
+};
+
+function getErrorMessage(parsed: unknown, fallback: string): string {
+  if (typeof parsed !== "object" || parsed === null) {
+    return fallback;
+  }
+
+  const payload = parsed as ErrorPayload;
+
+  if (typeof payload.detail === "string" && payload.detail.trim()) {
+    return payload.detail;
+  }
+
+  if (typeof payload.error === "string" && payload.error.trim()) {
+    return payload.error;
+  }
+
+  return fallback;
+}
+
 function logEvent(event: string, data: Record<string, unknown> = {}) {
   console.log(
     JSON.stringify({
@@ -78,7 +101,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      let parsedError: any = null;
+      let parsedError: unknown = null;
 
       try {
         parsedError = rawText ? JSON.parse(rawText) : null;
@@ -88,10 +111,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error:
-            parsedError?.detail ||
-            parsedError?.error ||
-            "Erro ao buscar assessments.",
+          error: getErrorMessage(parsedError, "Erro ao buscar assessments."),
         },
         { status: response.status }
       );

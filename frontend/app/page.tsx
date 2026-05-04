@@ -65,9 +65,9 @@ export default function Home() {
       const data: AssessmentResult = await res.json();
       setResult(data);
 
-      if ((window as any).addToast) {
-        (window as any).addToast({
-          message: "Trilha gerada com sucesso!",
+      if (window.addToast) {
+        window.addToast({
+          message: "Alguma mensagem de sucesso",
           type: "success",
         });
       }
@@ -78,8 +78,8 @@ export default function Home() {
 
       setError(message);
 
-      if ((window as any).addToast) {
-        (window as any).addToast({
+      if (window.addToast) {
+        window.addToast({
           message,
           type: "error",
         });

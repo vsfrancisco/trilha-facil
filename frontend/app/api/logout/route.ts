@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 function logEvent(event: string, data: Record<string, unknown> = {}) {
   console.log(
@@ -13,7 +13,7 @@ function logEvent(event: string, data: Record<string, unknown> = {}) {
   );
 }
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   const start = Date.now();
 
   try {

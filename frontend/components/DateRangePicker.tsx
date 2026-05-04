@@ -49,6 +49,9 @@ export default function DateRangePicker({ onChange, className = "" }: DateRangeP
     }
   };
 
+  const minSelectableDate = new Date();
+  minSelectableDate.setFullYear(minSelectableDate.getFullYear() - 1);
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -92,7 +95,7 @@ export default function DateRangePicker({ onChange, className = "" }: DateRangeP
                   onClick={() => onDayClick(day)}
                   onMouseEnter={() => setHoverDay(day)}
                   onMouseLeave={() => setHoverDay(null)}
-                  disabled={day < new Date(Date.now() - 86400000 * 365)} // 1 ano atrás
+                  disabled={day < minSelectableDate}
                   className={`
                     relative h-10 w-10 rounded-md text-sm font-medium transition-all
                     disabled:text-gray-300 disabled:cursor-not-allowed

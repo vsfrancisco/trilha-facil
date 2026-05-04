@@ -46,8 +46,8 @@ function LoginContent() {
           ? data.redirectTo
           : "/dashboard";
 
-      if ((window as any).addToast) {
-        (window as any).addToast({
+      if (window.addToast) {
+        window.addToast({
           message: "Login realizado com sucesso.",
           type: "success",
         });

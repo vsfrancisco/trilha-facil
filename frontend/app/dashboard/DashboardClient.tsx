@@ -229,9 +229,9 @@ export default function DashboardPage() {
     );
   }
 
-  const assessments = data?.items || [];
-  const total = data?.total || 0;
-  const totalPages = data?.total_pages || 0;
+const assessments = useMemo(() => data?.items ?? [], [data?.items]);
+const total = data?.total ?? 0;
+const totalPages = data?.total_pages ?? 0;
 
   const allVisibleSelected =
     assessments.length > 0 &&
